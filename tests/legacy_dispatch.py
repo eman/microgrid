@@ -2,11 +2,12 @@
 ``NativePlant`` and ``simulate``, as the library ran them for today's configurations (an
 AC-coupled plant with its battery on its own inverter, or folded on a hybrid's DC bus
 with nothing else there) until ``Plant.project`` ran ``project_paths`` for every
-configuration. Moved here unchanged from ``microgrid.plant._dispatch``; only tests use
-it. With them, the battery's answers (``PlantStorage``) and the meter split
-(``allocate``, ``consumption_kw``) today's configurations kept until the general
-dispatch took them over, moved here unchanged from ``plant._plant`` and
-``plant._meters``: the oracles ``PathStorage`` and ``split_paths`` are held to.
+configuration. Moved here from ``microgrid.plant._dispatch``, unchanged but for the
+working threshold's float tolerance (:func:`simulate`); only tests use it. With them,
+the battery's answers (``PlantStorage``) and the meter split (``allocate``,
+``consumption_kw``) today's configurations kept until the general dispatch took them
+over, moved here unchanged from ``plant._plant`` and ``plant._meters``: the oracles
+``PathStorage`` and ``split_paths`` are held to.
 
 Where each kWh goes: the AC-coupled plant's native dispatch.
 
@@ -280,9 +281,12 @@ def simulate(
         if pv is None or load is None:
             break
         flow, level = settle(index, pv, load + plant.standby_kw, plant.standby_kw)
-        if flow.moving > plant.working_threshold_kw and plant.working_kw > 0:
+        # The one change since it was frozen, made with the general dispatch's: the
+        # inverter works over its threshold by more than float noise (a battery a
+        # rounding above its floor wakes none, a threshold of 0 included).
+        if flow.moving > plant.working_threshold_kw + _EPS and plant.working_kw > 0:
             working, working_level = settle(index, pv, load + overhead, overhead)
-            if working.moving > plant.working_threshold_kw:
+            if working.moving > plant.working_threshold_kw + _EPS:
                 flow, level = working, working_level
         stored = level
         flows.append(flow)

@@ -27,7 +27,18 @@ from microgrid.engine.analysis.ground_truth import (
 from microgrid.engine.analysis.scoring import soc_end
 from microgrid.engine.extend import Flows, SlotFlow
 from microgrid.engine.series import SLOT, slot_starts
-from microgrid.plant import WORKING_KW, HoldRule, Load, Plant
+from microgrid.plant import (
+    WORKING_KW,
+    Battery,
+    BatteryPart,
+    Conversion,
+    HoldRule,
+    Inverter,
+    Load,
+    Plant,
+    PlantConfig,
+    PvArray,
+)
 
 TZ = ZoneInfo("Europe/Berlin")
 DAY = date(2026, 6, 10)
@@ -198,13 +209,64 @@ AT = datetime(2026, 6, 10, 19, 0, tzinfo=UTC)
 
 def test_the_models_inverter_power_is_out_positive_with_its_own_draw() -> None:
     # Hand-worked.
-    charging = SlotFlow(start=AT, soc_start=0.5, soc_end=0.6, pv_to_battery=3.0)
-    serving = SlotFlow(start=AT, soc_start=0.5, soc_end=0.4, battery_to_load=2.0)
-    idle = SlotFlow(start=AT, soc_start=0.5, soc_end=0.5)
     working = EXAMPLE_PLANT.standby_kw + EXAMPLE_PLANT.working_kw
+    charging = SlotFlow(
+        start=AT, soc_start=0.5, soc_end=0.6, pv_to_battery=3.0, inverter_draw=working
+    )
+    serving = SlotFlow(
+        start=AT, soc_start=0.5, soc_end=0.4, battery_to_load=2.0, inverter_draw=working
+    )
+    idle = SlotFlow(start=AT, soc_start=0.5, soc_end=0.5, inverter_draw=EXAMPLE_PLANT.standby_kw)
     assert net_inverter_kw(PLANT, charging, 0.0) == pytest.approx(-3.0 - working)  # in
     assert net_inverter_kw(PLANT, serving, 0.0) == pytest.approx(2.0 - working)  # out
     assert net_inverter_kw(PLANT, idle, 0.0) == pytest.approx(-EXAMPLE_PLANT.standby_kw)
+
+
+def test_the_models_inverter_power_is_the_battery_inverters_beside_a_hybrid() -> None:
+    # Hand-worked: a hybrid (standby 0.02) beside a battery on its own inverter (0.03,
+    # working 0.05). The projection draws both standbys; the battery's converter meters
+    # its own draw: 1.1 out to a 1 kW house, less 0.08, is 1.02.
+    plant = Plant(
+        PlantConfig(
+            tz=TZ,
+            pv=(PvArray("strings", "dc"),),
+            battery=BatteryPart(
+                Battery(10.0, 6.0, 6.0, 0.95, 0.95),
+                "ac",
+                inverter=Inverter(standby_kw=0.03, working_kw=0.05),
+            ),
+            hybrid=Inverter(standby_kw=0.02, conversion=Conversion(0.97, 0.97, 0.002, 0.002)),
+        )
+    )
+    (flow,) = plant.project([AT], [SLOT], [0.0], [1.0], 0.5)
+    assert flow.inverter_draw == pytest.approx(0.10)
+    assert net_inverter_kw(plant, flow, 1.0) == pytest.approx(flow.battery_to_load - 0.08)
+    assert net_inverter_kw(plant, flow, 1.0) == pytest.approx(1.02)
+
+
+def test_the_models_inverter_power_on_the_dc_bus_keeps_the_hybrids_own_draw() -> None:
+    # Hand-worked: the battery folded on the hybrid's DC bus (no DC-bus load), so the
+    # hybrid is its converter and meters its own draw: out to a 1 kW house is 1.0, and
+    # idle, 0.
+    plant = plant_of(EXAMPLE_PLANT, connection="dc_bus")
+    assert plant.config.battery_inverter is plant.config.hybrid
+    (serving,) = plant.project([AT], [SLOT], [0.0], [1.0], 0.5)
+    (idle,) = plant.project([AT], [SLOT], [0.0], [0.0], 0.5)
+    assert net_inverter_kw(plant, serving, 1.0) == pytest.approx(1.0)
+    assert net_inverter_kw(plant, idle, 0.0) == pytest.approx(0.0)
+
+
+def test_the_models_inverter_power_counts_the_battery_export() -> None:
+    exporting = SlotFlow(
+        start=AT,
+        soc_start=0.5,
+        soc_end=0.4,
+        battery_export=3.0,
+        inverter_draw=EXAMPLE_PLANT.standby_kw + EXAMPLE_PLANT.working_kw,
+    )
+    assert net_inverter_kw(PLANT, exporting, 0.0) == pytest.approx(
+        3.0 - EXAMPLE_PLANT.standby_kw - EXAMPLE_PLANT.working_kw
+    )
 
 
 def test_the_models_inverter_power_counts_the_ac_it_takes_for_the_dc_bus() -> None:

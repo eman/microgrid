@@ -205,11 +205,16 @@ def net_inverter_kw(plant: Plant, flow: SlotFlow, house_kw: float) -> float:
         ac_to_dc = flow.pv_to_load + flow.grid_to_load + flow.battery_to_load - house_kw - draw
         out = flow.battery_to_load + flow.battery_export
         return out - flow.pv_to_battery - flow.grid_to_battery - ac_to_dc - draw
-    moving = flow.pv_to_battery + flow.grid_to_battery + flow.battery_to_load
-    inverter = plant.inverter
-    working = inverter.working_kw if moving > inverter.working_threshold_kw else 0.0
-    draw = inverter.standby_kw + working
-    return flow.battery_to_load - flow.pv_to_battery - flow.grid_to_battery - draw
+    # The draw the projection settled on (standby, or working too), not worked out again,
+    # less a hybrid's standby where the hybrid is not the battery's converter (a battery on
+    # its own inverter beside it): the projection draws both (``Paths.standby_kw``), the
+    # battery's converter meters its own. On the hybrid's DC bus the hybrid is it.
+    config = plant.config
+    hybrid = config.hybrid
+    beside = hybrid is not None and hybrid is not config.battery_inverter
+    draw = flow.inverter_draw - (hybrid.standby_kw if beside and hybrid is not None else 0.0)
+    out = flow.battery_to_load + flow.battery_export  # an export leaves through it too
+    return out - flow.pv_to_battery - flow.grid_to_battery - draw
 
 
 def dc_bus_inputs(
