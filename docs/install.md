@@ -1,9 +1,5 @@
 # Install
 
-microgrid is **pre-release**: its formats are versioned (`plant/2`, `engine/2`,
-`dataset/1`, `sources/1`, `valuation/2`), but it is not yet published to PyPI. Install it from its git
-repository.
-
 **Requirements:** Python 3.14 or later. The library has no other runtime dependencies.
 
 ## Into your own project
@@ -11,13 +7,13 @@ repository.
 With [uv](https://docs.astral.sh/uv/):
 
 ```sh
-uv add git+https://github.com/eman/microgrid.git
+uv add microgrid
 ```
 
 With pip:
 
 ```sh
-pip install "git+https://github.com/eman/microgrid.git"
+pip install microgrid
 ```
 
 Or list it in your `pyproject.toml`:
@@ -25,18 +21,18 @@ Or list it in your `pyproject.toml`:
 ```toml
 [project]
 requires-python = ">=3.14"
-dependencies = ["microgrid @ git+https://github.com/eman/microgrid.git"]
+dependencies = ["microgrid ~= 0.1.0"]
 ```
 
-No extras are needed for the engine. Pin a commit (`...microgrid.git@<commit>`) while
-the library is pre-release: a format can still change between versions, and its version
-number says when.
+Before 1.0 a minor release may change a format, the API or the model, so pin the minor
+release you tested with ([Versions](reference/versions.md)).
 
-This installs one distribution, `microgrid`, with two packages and one command:
+This installs one distribution, `microgrid`, with three packages and one command:
 
 | | What |
 |---|---|
-| `microgrid.engine` | the library: import it to value your plant from Python |
+| `microgrid.plant` | the plant model, on its own |
+| `microgrid.engine` | the prices: import it to value your plant from Python |
 | `microgrid.cli` | the command's code, and the `dataset/1` reader and writer |
 | `microgrid` | the command: the library run on a dataset of files |
 
@@ -51,8 +47,8 @@ microgrid --help
 packages (`httpx`, `pydantic`), in the `sources` extra; nothing else does:
 
 ```sh
-uv add "microgrid[sources] @ git+https://github.com/eman/microgrid.git"
-pip install "microgrid[sources] @ git+https://github.com/eman/microgrid.git"
+uv add "microgrid[sources]"
+pip install "microgrid[sources]"
 ```
 
 Without it, those commands say which extra to install.
@@ -68,6 +64,5 @@ uv run microgrid value --data examples/dataset --at 2026-10-22T13:00
 
 `uv sync` installs the library, the command, the `sources` extra's packages and the
 development tools into `.venv`.
-`uv run mkdocs serve` serves these docs locally.
 
 Next: [Run your first valuation](how-to/first-valuation.md).

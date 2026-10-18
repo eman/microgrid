@@ -85,3 +85,22 @@ script is the pre-push hook, so run it locally first:
 scripts/install-hooks.sh   # once: pre-push runs the gate
 scripts/ci_local.sh        # the gate: lock, ruff, format, mypy, docs, pytest
 ```
+
+## Releases
+
+Versions follow `docs/reference/versions.md`: semantic versioning, the version in
+`pyproject.toml` alone (`microgrid --version` reads it). Between releases it is the next
+release's, with `.dev0`. To release `X.Y.Z`:
+
+1. In one change on `main`: `CHANGELOG.md`'s `[Unreleased]` becomes `[X.Y.Z] - YYYY-MM-DD`
+   (a new empty `[Unreleased]` above it), and `pyproject.toml`'s version becomes `X.Y.Z`
+   (`uv version X.Y.Z`, which updates `uv.lock`). The gate passes.
+2. Tag that commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the
+   tag is the version, runs the gate, builds, publishes to PyPI by trusted publishing
+   (the `pypi` environment) and makes the GitHub release, its notes the changelog's
+   section.
+3. Then `pyproject.toml`'s version becomes the next one's `.dev0` (`uv version
+   X.Y.(Z+1).dev0`).
+
+A version on PyPI is never replaced: a mistake is fixed by the next release.
+

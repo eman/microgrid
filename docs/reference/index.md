@@ -16,6 +16,9 @@ The formats, the command and the API, each as the code defines it.
 
 **Causes and kinds.** [What `degraded` and `kind` say](causes.md).
 
+**Versions.** [What the release, the formats', the API's and the model's versions
+say](versions.md), and what a release may change.
+
 **The API**, generated from the docstrings, one page per public module. Every other
 module is private and may change without notice.
 

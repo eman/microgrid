@@ -34,13 +34,23 @@ from microgrid.cli.offline import (
     value,
 )
 from microgrid.cli.toml_text import dumps
-from microgrid.engine import Cause, EngineConfigError
+from microgrid.engine import ENGINE_CONTRACT, MODEL_VERSION, Cause, EngineConfigError
 from microgrid.engine.series import Series, alive
 
 REPO = Path(__file__).resolve().parents[2]
 EXAMPLE = REPO / "examples" / "dataset"
 BERLIN = ZoneInfo("Europe/Berlin")
 HOUR = timedelta(hours=1)
+
+
+def test_version_is_the_distributions(capsys: pytest.CaptureFixture[str]) -> None:
+    """``--version`` gives pyproject.toml's version, and the API and model it carries."""
+    project = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
+    with pytest.raises(SystemExit) as done:
+        main(["--version"])
+    assert done.value.code == 0
+    expected = f"microgrid {project['project']['version']} ({ENGINE_CONTRACT}, {MODEL_VERSION})"
+    assert capsys.readouterr().out.strip() == expected
 
 
 def test_value_prints_the_valuation(capsys: pytest.CaptureFixture[str]) -> None:

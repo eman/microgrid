@@ -11,11 +11,16 @@ requires-python = ">=3.14"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Emmanuel Levijarvi", email = "emansl@gmail.com" }]
+keywords = ["solar", "battery", "microgrid", "energy", "marginal price", "home energy"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Private :: Do Not Upload",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
     "Typing :: Typed",
 ]
 dependencies = []
@@ -55,11 +60,32 @@ dev = [
 [project.scripts]
 microgrid = "microgrid.cli.main:main"
 
+[project.urls]
+Homepage = "https://github.com/eman/microgrid"
+Documentation = "https://github.com/eman/microgrid/tree/main/docs"
+Source = "https://github.com/eman/microgrid"
+Changelog = "https://github.com/eman/microgrid/blob/main/CHANGELOG.md"
+Issues = "https://github.com/eman/microgrid/issues"
+
 [tool.uv]
 default-groups = ["dev"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/microgrid"]
+
+# The sdist: the library, its tests with the example dataset and the scripts they read,
+# and the project's own files; not the docs site or the CI.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/microgrid",
+    "/tests",
+    "/examples/dataset",
+    "/scripts",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
 
 [tool.ruff]
 line-length = 100

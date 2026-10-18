@@ -12,8 +12,19 @@ also stands alone, without the price code.
   a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
   grid's limits and charge windows.
 
-The documentation is in [`docs/`](docs/index.md): how the prices are made, the concepts,
-how-to guides and the reference.
+The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md): how the prices are made, the
+concepts, how-to guides and the reference.
+
+## Install
+
+```sh
+pip install microgrid                # or: uv add microgrid
+pip install "microgrid[sources]"     # with the readers of live sources (Home Assistant)
+```
+
+Python 3.14 or later. Before 1.0 a minor release may change a format, the API or the
+model: pin the minor release you tested with (`microgrid ~= 0.1.0`,
+[Versions](https://github.com/eman/microgrid/blob/main/docs/reference/versions.md)).
 
 ## The command
 
@@ -53,7 +64,7 @@ time; one the clocks skip is refused).
 
 ## Development
 
-Python 3.14, uv. See [AGENTS.md](AGENTS.md) for the rules and conventions.
+Python 3.14, uv. See [AGENTS.md](https://github.com/eman/microgrid/blob/main/AGENTS.md) for the rules and conventions.
 
 ```sh
 uv sync                      # .venv with the library and the dev tools
@@ -63,4 +74,4 @@ scripts/ci_local.sh          # ruff, format, mypy --strict, the docs, pytest + c
 
 ## License
 
-MIT: see [LICENSE](LICENSE).
+MIT: see [LICENSE](https://github.com/eman/microgrid/blob/main/LICENSE).

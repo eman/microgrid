@@ -162,6 +162,7 @@ nav:
       - engine/2: reference/engine.md
       - valuation/2: reference/valuation.md
       - Causes and kinds: reference/causes.md
+      - Versions: reference/versions.md
       - API:
           - microgrid.engine: reference/api/engine.md
           - microgrid.engine.series: reference/api/series.md

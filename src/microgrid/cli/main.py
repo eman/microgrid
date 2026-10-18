@@ -28,6 +28,7 @@ import re
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from importlib import metadata
 from importlib.resources import files
 from importlib.util import find_spec
 from pathlib import Path
@@ -54,7 +55,13 @@ from microgrid.cli.offline import (
 )
 from microgrid.cli.sources import SourceError
 from microgrid.cli.sources.config import Sources, SourcesConfigError, read_sources
-from microgrid.engine import EngineConfigError, Valuation, ValuationKind
+from microgrid.engine import (
+    ENGINE_CONTRACT,
+    MODEL_VERSION,
+    EngineConfigError,
+    Valuation,
+    ValuationKind,
+)
 from microgrid.engine.ledger import Amount, Source
 from microgrid.plant import PlantConfigError
 
@@ -431,6 +438,12 @@ def parser() -> argparse.ArgumentParser:
         prog="microgrid",
         description="The library run on a dataset (dataset/1). A time without an offset is"
         " the plant's local time.",
+    )
+    # The distribution's version (pyproject.toml), and the API and model it carries.
+    top.add_argument(
+        "--version",
+        action="version",
+        version=f"microgrid {metadata.version('microgrid')} ({ENGINE_CONTRACT}, {MODEL_VERSION})",
     )
     commands = top.add_subparsers(dest="command", required=True)
 

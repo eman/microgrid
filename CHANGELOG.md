@@ -1,6 +1,6 @@
 # Changelog
 
-Each user-visible change, under the release it ships in. Nothing is released yet.
+Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
@@ -49,6 +49,13 @@ The first version, under the MIT license.
   Solcast, EMHASS, Predbat) or an entity.
 - **The example dataset** (`examples/dataset`): a synthetic week of an example plant in
   Europe/Berlin, across the DST change, with the outputs it is expected to give.
+
+### Added (releases)
+
+- **Versions and releases:** semantic versioning, explained beside the formats', the
+  API's and the model's versions (`docs/reference/versions.md`); `microgrid --version`
+  prints the release with the API and the model it carries. Releases are published to
+  PyPI from a tag (`vX.Y.Z`).
 
 ### Added (documentation)
 
