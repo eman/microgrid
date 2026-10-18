@@ -376,9 +376,20 @@ def test_fit_battery_on_the_example(capsys: pytest.CaptureFixture[str]) -> None:
     assert "--end is needed" in capsys.readouterr().err
     assert main([*argv, "--end", "2026-10-28"]) == 0
     out = capsys.readouterr().out
-    # The example's battery loses 0.003 per kW each way (plant.examples), fitted back.
-    assert "loss_charge_per_kw       0.00300" in out
-    assert "loss_discharge_per_kw    0.00300" in out
+    # The example's parameters (plant.examples' ac_coupled_hybrid), each within the 90 %
+    # interval fitted: the battery loses 0.003 per kW each way, and the hybrid draws
+    # 0.03 kW, 0.06 more while the battery works. Not to the digit: the meters cannot
+    # tell a working slot just over the threshold from a standby one (``own_draw_kw``).
+    truth = {
+        "[battery] loss_charge_per_kw": 0.003,
+        "[battery] loss_discharge_per_kw": 0.003,
+        "[hybrid] standby_kw": 0.03,
+        "[hybrid] working_kw": 0.06,
+    }
+    for name, want in truth.items():
+        (line,) = [line for line in out.splitlines() if line.strip().startswith(name)]
+        low, high = (float(kw) for kw in line.split("(90 %")[1].rstrip(")").split(".."))
+        assert low - 5e-5 <= want <= high + 5e-5, line  # the interval printed to 4 places
 
 
 def test_replay_on_the_example(capsys: pytest.CaptureFixture[str]) -> None:

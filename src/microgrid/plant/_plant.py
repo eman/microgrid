@@ -42,7 +42,7 @@ from microgrid._checks import require_utc
 from microgrid.plant._battery import Battery
 from microgrid.plant._config import Inverter, PlantConfig, PlantConfigError
 from microgrid.plant._meters import Metered, flows_of, split_paths
-from microgrid.plant._paths import Paths, PathStorage, _spans, paths_of, project_paths
+from microgrid.plant._paths import _EPS, Paths, PathStorage, _spans, paths_of, project_paths
 from microgrid.plant.flows import Flows, MeterReading, PvKw, SlotDispatch, SlotFlow
 
 
@@ -224,10 +224,16 @@ class Plant:
     def own_draw_kw(self, flow: Flows) -> float:
         """The inverter's own draw in a metered slot, kW: its standby, and its overhead
         while the battery charges or discharges over its working threshold
-        (``Inverter.working_kw``, ``working_threshold_kw``). Metered consumption
-        holds it; the house meter and the plant model's load do not. With a hybrid
-        beside a battery's own inverter, both standbys. 0 without an inverter
-        (:func:`_without_battery`)."""
+        (``Inverter.working_kw``, ``working_threshold_kw``), by more than float noise
+        as the projection reads it. Metered consumption holds it; the house meter and
+        the plant model's load do not. With a hybrid beside a battery's own inverter,
+        both standbys. 0 without an inverter (:func:`_without_battery`).
+
+        Where PV charging in standby would take the battery over the threshold but the
+        working overhead would leave it at or under it, the projection keeps the
+        standby. The meters cannot tell that slot from one working with the house
+        ``working_kw`` lower: the same charge, grid and consumption. Read as working, as
+        the inverter is with the battery moving over its threshold."""
         moving = (
             flow.pv_to_battery
             + flow.grid_to_battery
@@ -238,7 +244,7 @@ class Plant:
         )
         paths = self._paths
         if paths is not None:
-            working = paths.working_kw if moving > paths.working_threshold_kw else 0.0
+            working = paths.working_kw if moving > paths.working_threshold_kw + _EPS else 0.0
             return paths.standby_kw + working
         return 0.0
 

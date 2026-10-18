@@ -1171,7 +1171,8 @@ def _slot_flow(
     """The part's flows, its losses, and its stored energy after (clamped to the
     battery)."""
     port, slot, curve, capacity = p.port, part.slot, p.paths.curve, p.capacity
-    hybrid_loss = slot.x - curve.ac(slot.x) if curve is not None else 0.0
+    crossing_ac = curve.ac(slot.x) if curve is not None else 0.0
+    hybrid_loss = slot.x - crossing_ac
     battery_loss = 0.0
     if port is not None:
         battery_loss = (slot.port_in - port.stored(slot.port_in)) + (
@@ -1205,6 +1206,7 @@ def _slot_flow(
             bus_clipped=part.bus_clipped,
             unserved_unreachable=part.unreachable,
             crossing=slot.x,
+            crossing_ac=crossing_ac,
             battery_port=slot.port_in - part.port_out,
             battery_port_in=slot.port_in,
             battery_port_out=part.port_out,

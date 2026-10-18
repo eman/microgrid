@@ -32,7 +32,7 @@ Each input has one meaning, defined here, and a name on each surface: the entry 
 | `live` | `value`'s, and the plant's meters. The house load and a heartbeat are optional: without the house load the live value names `load_power`; without a heartbeat, nothing judges the telemetry path |
 | `replay` | `value`'s, and the `pv`, `grid` and `battery` meters and the SOC. The prices the battery was charged at are the recorded prices where the dataset has them, else the price forecasts' (below); a heartbeat is optional |
 | `ledger` | the `pv`, `grid` and `battery` meters, the SOC and the prices as `replay` takes them; a heartbeat is optional |
-| `check-plant` | `ledger`'s, and the house load |
+| `check-plant` | `ledger`'s, and the house load. The inverter's AC power is optional: without it, the inverter's measures are left out |
 | `fit-battery` | the `pv`, `grid` and `battery` meters, the SOC, the house load and the inverter's AC power |
 
 The commands that score against the meters need a plant with a battery and PV.
@@ -154,5 +154,5 @@ the battery was charged at.
 ## Inverter AC power
 
 The AC power at the battery's converter (its own inverter, or the hybrid it is folded
-into), positive out to the house (optional). `fit-battery` alone reads it, to fit the
-converter's loss.
+into), positive out to the house (optional). `fit-battery` reads it to fit the
+converter's loss; `check-plant` compares it with the model's, where it is given.
