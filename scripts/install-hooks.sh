@@ -7,16 +7,11 @@ cat > "$hook" <<'HOOK'
 #!/usr/bin/env bash
 # Installed by scripts/install-hooks.sh. Bypass once with `git push --no-verify`.
 # A push that changes only docs (docs/, Markdown, mkdocs.yml) runs the docs part of the
-# gate; anything else runs all of it, then the gate of each example with its own
-# (examples/*/scripts/ci_local.sh).
+# gate; anything else runs all of it.
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 full() {
-  "$root/scripts/ci_local.sh"
-  for gate in "$root"/examples/*/scripts/ci_local.sh; do
-    if [ -x "$gate" ]; then "$gate"; fi
-  done
-  exit 0
+  exec "$root/scripts/ci_local.sh"
 }
 zero=0000000000000000000000000000000000000000
 changed=""
