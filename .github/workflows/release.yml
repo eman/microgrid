@@ -86,7 +86,9 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    # A job's permissions replace the workflow's: contents: read again, for the checkout.
     permissions:
+      contents: read
       pages: write
       id-token: write  # the Pages deployment
     # Two releases tagged close together publish in turn, the later last.

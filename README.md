@@ -12,9 +12,9 @@ also stands alone, without the price code.
   a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
   grid's limits and charge windows.
 
-The documentation is at [eman.github.io/microgrid](https://eman.github.io/microgrid/) (its
-source in `docs/`): how the prices are made, the concepts, how-to guides and the
-reference.
+The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md),
+published with each release at [eman.github.io/microgrid](https://eman.github.io/microgrid/):
+how the prices are made, the concepts, how-to guides and the reference.
 
 ## Install
 
@@ -25,7 +25,7 @@ pip install "microgrid[sources]"     # with the readers of live sources (Home As
 
 Python 3.14 or later. Before 1.0 a minor release may change a format, the API or the
 model: pin the minor release you tested with (`microgrid ~= 0.1.0`,
-[Versions](https://eman.github.io/microgrid/reference/versions/)).
+[Versions](https://github.com/eman/microgrid/blob/main/docs/reference/versions.md)).
 
 ## The command
 
