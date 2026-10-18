@@ -24,7 +24,9 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   else
     base="$remote_sha"
   fi
-  if [ -z "$base" ]; then
+  # No base, or one this clone has not fetched (a force-push over unfetched commits):
+  # all of it.
+  if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
     full
   fi
   changed+="$(git diff --name-only "$base" "$local_sha")"$'\n'
