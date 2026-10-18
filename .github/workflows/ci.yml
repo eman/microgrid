@@ -36,5 +36,3 @@ jobs:
           enable-cache: true
       - run: uv python install 3.14
       - run: scripts/ci_local.sh
-      # An example with a gate of its own (none in the published library).
-      - run: for gate in examples/*/scripts/ci_local.sh; do if [ -x "$gate" ]; then "$gate"; fi; done
