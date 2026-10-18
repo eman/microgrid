@@ -401,6 +401,11 @@ def test_the_working_threshold_is_the_configurations() -> None:
     assert working.inverter_draw == draws
     assert idle.inverter_draw == EXAMPLE_PLANT.standby_kw
     assert plant_of(own).own_draw_kw(metered) == EXAMPLE_PLANT.standby_kw
+    # Float noise wakes no inverter, at a threshold of 0 too, as in the projection.
+    zero = plant_of(replace(EXAMPLE_PLANT, working_threshold_kw=0.0))
+    dust = replace(metered, pv_to_load=1.0, pv_to_battery=4.2e-19)
+    assert zero.own_draw_kw(dust) == EXAMPLE_PLANT.standby_kw
+    assert zero.own_draw_kw(metered) == draws
 
 
 @pytest.mark.parametrize("field", ["standby_kw", "working_kw", "working_threshold_kw"])

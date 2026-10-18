@@ -6,11 +6,11 @@ Four versions, each saying something different:
 |---|---|---|---|
 | the release | `0.1.0` | PyPI, `microgrid --version`, the [changelog](https://github.com/eman/microgrid/blob/main/CHANGELOG.md) | which code you have |
 | each format's | `plant/2`, `engine/2`, `dataset/1`, `sources/1`, `valuation/2` | a file's `schema` (a dataset's `manifest.json`: `format`), the outputs' schema (`microgrid schema`) | the shape of the data |
-| the API's | `engine-api/4` | `microgrid.engine.ENGINE_CONTRACT` | the shape of the Python API |
+| the API's | `engine-api/5` | `microgrid.engine.ENGINE_CONTRACT` | the shape of the Python API |
 | the model's | `pricing/1.3` | every valuation's `model_version` | how the prices are made |
 
 `microgrid --version` prints the release with the API and the model it carries:
-`microgrid 0.1.0 (engine-api/4, pricing/1.3)`.
+`microgrid 0.1.0 (engine-api/5, pricing/1.3)`.
 
 ## The release
 

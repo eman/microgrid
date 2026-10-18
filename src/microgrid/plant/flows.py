@@ -161,7 +161,7 @@ class SlotDispatch:
     ``bus_clipped`` and ``unserved_unreachable`` (through
     :attr:`SlotFlow.unserved_reachable`); the live value reads ``hold_session``; the
     general dispatch's ``Storage`` reads ``crossing``, ``battery_port`` and its gross
-    ``battery_port_in`` and ``battery_port_out``.
+    ``battery_port_in`` and ``battery_port_out``; the ground truth reads ``crossing_ac``.
     """
 
     #: The plant holds the battery (tops it up, keeps it at its target, or a hold rule
@@ -181,6 +181,12 @@ class SlotDispatch:
     #: answers its ``Storage`` questions from.
     crossing: float = 0.0
     battery_port: float = 0.0
+    #: The AC kW the hybrid's net crossing gives the AC side (< 0: takes from it): what
+    #: its AC meter reads before its own draw, the battery's flows, the DC PV crossing
+    #: and the AC it takes for DC-bus loads all in it. Each part's own, so a slot run
+    #: in parts holds their mean (the curve at the mean ``crossing`` is not it). 0
+    #: without a hybrid, and for metered flows.
+    crossing_ac: float = 0.0
     #: What the battery took in at its port and gave out over the slot, kW, each >= 0 in
     #: ``battery_port``'s terms: a metered slot can both charge and discharge, which the
     #: net ``battery_port`` hides. A plant model that leaves both at 0 gets its storage's

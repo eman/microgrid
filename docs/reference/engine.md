@@ -102,6 +102,6 @@ The configuration's schema is `engine/2` (`ENGINE_SCHEMA`). A file that says `en
 is still read, as it was: the same keys, but with no `price_max_age_minutes` its prices
 have no age limit, where `engine/2` defaults the limit to 26 hours. That default is why
 the name went up: a file read differently is a new version. It is not the API's version: that is
-`ENGINE_CONTRACT` (`engine-api/4`), which goes up with every change a client must
+`ENGINE_CONTRACT` (`engine-api/5`), which goes up with every change a client must
 follow. A valuation names the price rule and plant model that made it
 (`MODEL_VERSION`, `pricing/1.3`), and the outputs' schema is `valuation/2`.

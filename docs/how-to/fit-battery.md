@@ -64,11 +64,14 @@ between forms is the larger uncertainty.
 
 ```text
 => the plant's parameters (plant/2):
-   [battery] eta_charge               0.95088 (90 % +0.9498 .. +0.9521)
-   [battery] eta_discharge            0.96928 (90 % +0.9660 .. +0.9730)
-   [battery] loss_charge_per_kw       0.00300 (90 % +0.0030 .. +0.0030)
+   [battery] eta_charge               0.94718 (90 % +0.9439 .. +0.9506)
+   [battery] eta_discharge            0.95865 (90 % +0.9496 .. +0.9716)
+   [battery] loss_charge_per_kw       0.00247 (90 % +0.0020 .. +0.0030)
    ...
-   discharging 1 kW DC delivers 95.7% of it, draws included
+   [hybrid] standby_kw                0.03021 (90 % +0.0300 .. +0.0306)
+   [hybrid] working_kw                0.05547 (90 % +0.0523 .. +0.0600)
+   ...
+   discharging 1 kW DC delivers 86.6% of it, draws included
 ```
 
 Copy the figures into your `plant/2` and run [check-plant](check-plant.md) to confirm

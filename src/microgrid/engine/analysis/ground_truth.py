@@ -195,21 +195,19 @@ def routing_class(plant: Plant, flow: SlotFlow, noise: Noise = OBSERVED) -> str:
     return "idle"
 
 
-def net_inverter_kw(plant: Plant, flow: SlotFlow, house_kw: float) -> float:
-    """The model's inverter AC power, > 0 out to the house: what the battery delivers
-    less what it takes and the inverter's own draw, and for a plant with a DC-bus load
-    less the AC the hybrid takes for it: what serves the AC side beyond the house load
-    ``house_kw`` and the draw (``SlotFlow``), with the battery's export."""
-    if plant.has_dc_loads:
-        draw = flow.inverter_draw
-        ac_to_dc = flow.pv_to_load + flow.grid_to_load + flow.battery_to_load - house_kw - draw
-        out = flow.battery_to_load + flow.battery_export
-        return out - flow.pv_to_battery - flow.grid_to_battery - ac_to_dc - draw
-    # The draw the projection settled on (standby, or working too), not worked out again,
-    # less a hybrid's standby where the hybrid is not the battery's converter (a battery on
-    # its own inverter beside it): the projection draws both (``Paths.standby_kw``), the
-    # battery's converter meters its own. On the hybrid's DC bus the hybrid is it.
+def net_inverter_kw(plant: Plant, flow: SlotFlow) -> float:
+    """The model's AC power at the battery's converter, kW, > 0 out to the AC side, net
+    of its own draw: what its AC meter reads. On a hybrid's DC bus the hybrid is the
+    converter, and it meters all it converts (``SlotDispatch.crossing_ac``): the
+    battery's flows, DC PV crossing to the AC side and the AC it takes for DC-bus loads.
+    On its own inverter, what the battery delivers (an export too) less what it takes."""
     config = plant.config
+    part = config.battery
+    if part is not None and part.connection == "dc_bus":
+        return flow.dispatch.crossing_ac - flow.inverter_draw
+    # The draw the projection settled on (standby, or working too), not worked out again,
+    # less a hybrid's standby beside the battery's own inverter: the projection draws
+    # both (``Paths.standby_kw``), the battery's converter meters its own.
     hybrid = config.hybrid
     beside = hybrid is not None and hybrid is not config.battery_inverter
     draw = flow.inverter_draw - (hybrid.standby_kw if beside and hybrid is not None else 0.0)
@@ -461,10 +459,7 @@ def project_against_meters(
                 for i in slots
             )
         ):
-            net = [
-                net_inverter_kw(plant, f, house[i] or 0.0)
-                for f, i in zip(modelled, slots, strict=True)
-            ]
+            net = [net_inverter_kw(plant, f) for f in modelled]
             pairs["inverter out kWh/day"] = (
                 sum(max(kw, 0.0) * hours_each for kw in net),
                 sum((rec.inverter_out_kw[i] or 0.0) * hours_each for i in slots),

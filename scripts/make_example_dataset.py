@@ -132,8 +132,9 @@ def main() -> None:
         for name, kind in plant.meters.items():
             meters[name].append((at, round(by_kind[kind], 4)))
         house.append((at, round(kw, 4)))
-        # The battery's inverter, AC, > 0 out (for fitting the battery's conversion).
-        ac_out = flow.battery_to_load + flow.battery_export - charging
+        # The battery's inverter, AC, > 0 out (for fitting the battery's conversion): net
+        # of its own draw, as a converter's AC meter reads (``net_inverter_kw``).
+        ac_out = flow.battery_to_load + flow.battery_export - charging - flow.inverter_draw
         inverter.append((at, round(ac_out, 4)))
         assert flow.soc_end is not None
         soc.append((at + SLOT, round(flow.soc_end * 100, 3)))

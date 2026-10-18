@@ -41,7 +41,7 @@ from microgrid.engine.series import Series
 def test_a_nominal_valuation_is_the_price_curve_and_surplus_by_slot() -> None:
     valuation = Engine(CONFIG).value(inputs(), at=NOW)
     assert valuation is not None
-    assert (ENGINE_CONTRACT, valuation.model_version) == ("engine-api/4", MODEL_VERSION)
+    assert (ENGINE_CONTRACT, valuation.model_version) == ("engine-api/5", MODEL_VERSION)
     assert MODEL_VERSION == "pricing/1.3"
     assert valuation.kind is ValuationKind.STORED_VALUE_V1 and valuation.degraded == ()
     assert len(valuation.slots) == 288 and valuation.slots[0].start == datetime(

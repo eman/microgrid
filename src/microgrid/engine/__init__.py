@@ -33,7 +33,7 @@ Every valuation and live value has a ``kind`` (``ValuationKind``: ``unpriced``, 
 price for the slot under way, among them) and names the engine's causes (``Cause``) in
 ``degraded``; a live value keeps the client's own beside them (``external``). A gap in
 the load forecast that cut the horizon is ``Valuation.horizon_cut``. The versions:
-``ENGINE_CONTRACT`` (``engine-api/4``), this API's; ``ENGINE_SCHEMA`` (``engine/2``),
+``ENGINE_CONTRACT`` (``engine-api/5``), this API's; ``ENGINE_SCHEMA`` (``engine/2``),
 the configuration's; ``VALUATION_SCHEMA`` (``valuation/2``), the outputs'; and
 ``MODEL_VERSION`` (``pricing/1.3``), the price rule and plant model each valuation
 names.

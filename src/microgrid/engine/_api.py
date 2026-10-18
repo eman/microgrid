@@ -92,7 +92,9 @@ from microgrid.plant.port import PlantModel
 #: ``microgrid.plant`` (``microgrid.engine.plant`` and the port's and flows' modules moved).
 #: ``engine-api/4``: no name says a currency (``per_kwh`` for ``usd_per_kwh``, the wear's
 #: and the ledger's floor's names), as money is in the prices' own.
-ENGINE_CONTRACT: Final = "engine-api/4"
+#: ``engine-api/5``: ``analysis.ground_truth.net_inverter_kw`` takes no house load (a
+#: hybrid's meter is the AC its crossing gives, ``SlotDispatch.crossing_ac``).
+ENGINE_CONTRACT: Final = "engine-api/5"
 
 #: The outputs' schema: what :meth:`Valuation.to_mapping` and
 #: :meth:`LiveValue.to_mapping` give, shipped as ``schemas/valuation-2.schema.json``.

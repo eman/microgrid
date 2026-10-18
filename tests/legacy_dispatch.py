@@ -316,8 +316,15 @@ def native_of(plant: Plant) -> NativePlant | None:
     )
 
 
-#: What the legacy dispatch did not report (left at 0): where the battery's port sits.
-UNREPORTED = ("crossing", "battery_port", "battery_port_in", "battery_port_out")
+#: What the legacy dispatch did not report (left at 0): where the battery's port sits, and
+#: what the hybrid's crossing gives the AC side.
+UNREPORTED = (
+    "crossing",
+    "crossing_ac",
+    "battery_port",
+    "battery_port_in",
+    "battery_port_out",
+)
 #: The general dispatch gives the legacy flows to float noise: 4e-14 kW measured over
 #: 3000 generated configurations of today's.
 TOLERANCE = 1e-9
