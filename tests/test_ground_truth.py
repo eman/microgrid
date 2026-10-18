@@ -244,6 +244,18 @@ def test_the_models_inverter_power_is_the_battery_inverters_beside_a_hybrid() ->
     assert net_inverter_kw(plant, flow, 1.0) == pytest.approx(1.02)
 
 
+def test_the_models_inverter_power_on_the_dc_bus_keeps_the_hybrids_own_draw() -> None:
+    # Hand-worked: the battery folded on the hybrid's DC bus (no DC-bus load), so the
+    # hybrid is its converter and meters its own draw: out to a 1 kW house is 1.0, and
+    # idle, 0.
+    plant = plant_of(EXAMPLE_PLANT, connection="dc_bus")
+    assert plant.config.battery_inverter is plant.config.hybrid
+    (serving,) = plant.project([AT], [SLOT], [0.0], [1.0], 0.5)
+    (idle,) = plant.project([AT], [SLOT], [0.0], [0.0], 0.5)
+    assert net_inverter_kw(plant, serving, 1.0) == pytest.approx(1.0)
+    assert net_inverter_kw(plant, idle, 0.0) == pytest.approx(0.0)
+
+
 def test_the_models_inverter_power_counts_the_battery_export() -> None:
     exporting = SlotFlow(
         start=AT,
