@@ -61,4 +61,4 @@ The first version, under the MIT license.
 
 - **The documentation:** the methodology and the library's requirements (R-1 to R-9),
   the concepts, how-to guides and the reference, published with each release at
-  https://eman.github.io/microgrid/.
+  `https://eman.github.io/microgrid/`.

@@ -13,7 +13,7 @@ also stands alone, without the price code.
   grid's limits and charge windows.
 
 The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md),
-published with each release at [eman.github.io/microgrid](https://eman.github.io/microgrid/):
+published with each release at `https://eman.github.io/microgrid/`:
 how the prices are made, the concepts, how-to guides and the reference.
 
 ## Install
