@@ -1,0 +1,6 @@
+the battery's lots, 2026-10-21 00:00 CEST to 2026-10-28 00:00 CET (1014 slots)
+source    charged kWh  cost USD  to load kWh      USD  exported kWh  held kWh      USD  USD/kWh
+unknown         0.000     0.000        6.000    0.000         0.000     0.000    0.000        -
+pv             40.497     2.968       34.184    2.505         0.000     6.397    0.469   0.0733
+grid           15.249     2.902       15.249    2.902         0.000     0.000    0.000        -
+unexplained: 0.084 kWh (the meters against the SOC)

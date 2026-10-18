@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "valuation/2",
+  "description": "A valuation, as microgrid.engine's Valuation.to_mapping gives it: the price of one more kWh by slot, unrounded. $defs/LiveValue is LiveValue.to_mapping's. Units: per kWh in the prices' currency, kW, 0-1 weights; times ISO 8601 with their offset.",
+  "$ref": "#/$defs/Valuation",
+  "$defs": {
+    "Cause": {
+      "enum": [
+        "prices",
+        "pv_forecast",
+        "battery_soc",
+        "work_mode",
+        "load_forecast",
+        "plant_model",
+        "pv_power",
+        "load_power",
+        "smoothing",
+        "issue",
+        "battery_lots",
+        "pv_spread"
+      ]
+    },
+    "Kind": {
+      "enum": [
+        "stored_value_v1",
+        "fallback_import",
+        "unpriced"
+      ]
+    },
+    "Regime": {
+      "enum": [
+        "export",
+        "curtail",
+        "battery",
+        "import"
+      ]
+    },
+    "PvValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "per_kwh",
+        "routing",
+        "weight"
+      ],
+      "properties": {
+        "per_kwh": {
+          "type": "number"
+        },
+        "routing": {
+          "enum": [
+            "export",
+            "curtail",
+            "battery"
+          ]
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "BatteryValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "per_kwh",
+        "displaces",
+        "weight"
+      ],
+      "properties": {
+        "per_kwh": {
+          "type": "number"
+        },
+        "displaces": {
+          "enum": [
+            "later_import",
+            "export"
+          ]
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "Step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "kw",
+        "per_kwh"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "spill",
+            "pv",
+            "battery",
+            "grid"
+          ]
+        },
+        "kw": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "per_kwh": {
+          "type": "number"
+        }
+      }
+    },
+    "InputState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "as_of",
+        "usable"
+      ],
+      "properties": {
+        "as_of": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "usable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SlotValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "p_import",
+        "p_export",
+        "surplus_kw",
+        "surplus_kw_p10",
+        "regime",
+        "marginal_cost",
+        "marginal_cost_p10",
+        "certainty_spill",
+        "certainty_covered",
+        "pv_value",
+        "battery_value",
+        "supply",
+        "unserved"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "p_import": {
+          "type": "number"
+        },
+        "p_export": {
+          "type": "number"
+        },
+        "surplus_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "surplus_kw_p10": {
+          "type": "number",
+          "minimum": 0
+        },
+        "regime": {
+          "$ref": "#/$defs/Regime"
+        },
+        "marginal_cost": {
+          "type": "number"
+        },
+        "marginal_cost_p10": {
+          "type": "number"
+        },
+        "certainty_spill": {
+          "type": "number",
+          "minimum": 0
+        },
+        "certainty_covered": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pv_value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PvValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "battery_value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BatteryValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "supply": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "unserved": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "Valuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_version",
+        "now",
+        "kind",
+        "degraded",
+        "inputs",
+        "load_forecast",
+        "slots",
+        "horizon_cut"
+      ],
+      "properties": {
+        "model_version": {
+          "type": "string"
+        },
+        "now": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind"
+        },
+        "degraded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cause"
+          },
+          "uniqueItems": true
+        },
+        "inputs": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/Cause"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/InputState"
+          }
+        },
+        "load_forecast": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SlotValue"
+          }
+        },
+        "horizon_cut": {
+          "type": "boolean"
+        }
+      }
+    },
+    "LiveValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "kind",
+        "surplus_kw",
+        "regime",
+        "p_import",
+        "p_export",
+        "marginal_cost",
+        "certainty_spill",
+        "certainty_covered",
+        "degraded",
+        "external",
+        "pv_value",
+        "battery_value"
+      ],
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind"
+        },
+        "surplus_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "regime": {
+          "$ref": "#/$defs/Regime"
+        },
+        "p_import": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "p_export": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "marginal_cost": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "certainty_spill": {
+          "type": "number",
+          "minimum": 0
+        },
+        "certainty_covered": {
+          "type": "number",
+          "minimum": 0
+        },
+        "degraded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cause"
+          },
+          "uniqueItems": true
+        },
+        "external": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pv_value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PvValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "battery_value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/BatteryValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

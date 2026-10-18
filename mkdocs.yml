@@ -1,0 +1,181 @@
+# The documentation site: `uv run mkdocs serve` (or `build --strict`, as the gate runs it).
+# Material for MkDocs (https://squidfunk.github.io/mkdocs-material/) and mkdocstrings'
+# Python handler (https://mkdocstrings.github.io/python/).
+site_name: microgrid
+site_description: A solar + battery plant modelled, and its marginal energy prices
+repo_url: https://github.com/eman/microgrid
+repo_name: eman/microgrid
+edit_uri: edit/main/docs/
+docs_dir: docs
+strict: true
+hooks:
+  - scripts/mkdocs_hooks.py
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            # The docstrings are prose in Markdown-compatible reStructuredText: no
+            # Google or numpy sections to parse. scripts/griffe_microgrid.py reads the
+            # ``#:`` comments that document attributes and turns Sphinx roles into code.
+            docstring_style: null
+            extensions:
+              - scripts/griffe_microgrid.py:MicrogridDocstrings
+            filters: public
+            members_order: source
+            group_by_category: true
+            show_root_heading: true
+            show_if_no_docstring: true
+            show_root_full_path: true
+            show_source: false
+            show_signature_annotations: true
+            separate_signature: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            merge_init_into_class: true
+            heading_level: 1
+
+# The development records and this site's notes are local files, never published: a
+# local build leaves them out as a clean checkout has none.
+exclude_docs: |
+  adr/
+  research/
+  INDEX.md
+  load-forecast.md
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Methodology:
+      - methodology/index.md
+      - The marginal price: methodology/marginal-price.md
+      - What a stored kWh is worth: methodology/stored-value.md
+      - The make-up rule: methodology/make-up-rule.md
+      - PV scenarios and certainty: methodology/scenarios.md
+      - Regimes and surplus: methodology/regimes-surplus.md
+      - The battery's lots: methodology/lots.md
+      - The live value: methodology/live-value.md
+      - Missing and stale inputs: methodology/degradation.md
+      - Scope: methodology/scope.md
+  - Concepts:
+      - concepts/index.md
+      - Slots and the horizon: concepts/slots-horizon.md
+      - Series and forecasts: concepts/series.md
+      - Inputs: concepts/inputs.md
+      - Units: concepts/units.md
+      - The plant model: concepts/plant-model.md
+      - Outputs: concepts/outputs.md
+  - How-to:
+      - how-to/index.md
+      - Run your first valuation: how-to/first-valuation.md
+      - Get prices from your own sources: how-to/own-sources.md
+      - Configure a source: how-to/configure-source.md
+      - Build a dataset: how-to/build-dataset.md
+      - Describe your plant: how-to/describe-plant.md
+      - Tune the engine: how-to/tune-engine.md
+      - Use the library from Python: how-to/python.md
+      - Use the prices in a scheduler: how-to/scheduler.md
+      - Run it continuously: how-to/run-continuously.md
+      - Replay and score a period: how-to/replay.md
+      - Check a plant model against its meters: how-to/check-plant.md
+      - Read the battery's lots: how-to/ledger.md
+      - Fit the battery's conversion: how-to/fit-battery.md
+      - Write your own plant model: how-to/own-plant-model.md
+      - Use the plant model on its own: how-to/plant-alone.md
+  - Configuration:
+      - Data sources: configuration/data-sources.md
+  - Reference:
+      - reference/index.md
+      - CLI: reference/cli.md
+      - dataset/1: reference/dataset.md
+      - plant/2: reference/plant.md
+      - engine/2: reference/engine.md
+      - valuation/2: reference/valuation.md
+      - Causes and kinds: reference/causes.md
+      - API:
+          - microgrid.engine: reference/api/engine.md
+          - microgrid.engine.series: reference/api/series.md
+          - microgrid.engine.units: reference/api/units.md
+          - microgrid.plant: reference/api/plant.md
+          - microgrid.engine.ledger: reference/api/ledger.md
+          - microgrid.engine.analysis.scoring: reference/api/analysis-scoring.md
+          - microgrid.engine.analysis.ground_truth: reference/api/analysis-ground-truth.md
+          - microgrid.engine.extend: reference/api/extend.md
+          - microgrid.engine.testing: reference/api/testing.md
+          - microgrid.cli.dataset: reference/api/cli-dataset.md
+          - microgrid.cli.inputs: reference/api/cli-inputs.md
+          - microgrid.cli.history: reference/api/cli-history.md
+          - microgrid.cli.offline: reference/api/cli-offline.md
+          - microgrid.cli.sources.config: reference/api/cli-sources-config.md
+          - microgrid.cli.sources.read: reference/api/cli-sources-read.md
+  - Glossary: glossary.md
+  - Changelog: changelog.md

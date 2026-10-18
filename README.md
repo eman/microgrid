@@ -1,0 +1,82 @@
+# microgrid
+
+`microgrid` is a library that models a solar + battery plant (`microgrid.plant`) and
+produces **marginal energy prices** from it (`microgrid.engine`): what one more kWh
+costs, slot by slot over a horizon, and the value of energy by source
+(eman/tariffkit#67). The plant model also stands alone, without the price code.
+
+- **Data in, data out.** No I/O: a client hands in the plant's configuration
+  (`plant/2`) and its inputs as time series (prices, PV and load forecasts, the
+  meters), and gets prices, regimes, certainties and surplus back.
+- **The plant model** takes its topology as configuration: PV of either coupling,
+  a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
+  grid's limits and charge windows.
+- **Not a tariff engine** (prices are an input), **not a load forecaster** (the
+  load forecast is an input) and **not a controller**: it decides nothing.
+
+How the prices are made is in the documentation's methodology (`docs/methodology/`).
+
+## The command
+
+`microgrid` (`microgrid.cli`, installed with the library) runs it on a dataset
+(`dataset/1`: a directory of series and the plant's and engine's files), so it needs no
+plant at hand. `microgrid.cli` reads the files; the engine still does no I/O. The example
+dataset (`examples/dataset`) is one synthetic week of the library's example plant in
+Europe/Berlin, the DST change on 2026-10-25 inside it:
+
+```sh
+uv run microgrid value --data examples/dataset --at 2026-10-22T13:00   # one valuation
+uv run microgrid live --data examples/dataset --from 2026-10-22T06:00 --to 2026-10-22T20:00
+uv run microgrid replay --data examples/dataset --from 2026-10-22 --to 2026-10-25
+                                        # valuations scored against the meters
+uv run microgrid check-plant --data examples/dataset --from 2026-10-21 --to 2026-10-27
+                                        # the plant model against its meters
+uv run microgrid ledger --data examples/dataset --from 2026-10-21 --to 2026-10-27
+                                        # the battery's lots and their cost split
+uv run microgrid fit-battery --data examples/dataset --end 2026-10-28 --days 7
+                                        # the battery's conversion, fitted
+uv run microgrid config check --data examples/dataset   # its plant/2 and engine/2
+uv run microgrid schema                                 # the outputs' schema
+```
+
+With a `sources/1` file naming a provider per input (any of several, none assumed; the
+`sources` extra, `microgrid[sources]`), it reads live inputs instead of a dataset:
+
+```sh
+uv run microgrid sources --sources sources.toml   # what each input is read from, or why not
+uv run microgrid now --sources sources.toml       # a valuation now; --save DIR keeps the inputs
+uv run microgrid fetch --sources sources.toml --from 2026-10-01 --to 2026-10-08 --out DIR
+                                        # what was measured, as a dataset
+```
+
+A time without an offset is the plant's local time (an hour that repeats, the first
+time; one the clocks skip is refused). `scripts/make_example_dataset.py` makes the
+example and `scripts/make_expected_outputs.py` the outputs its end-to-end test holds.
+
+## Documentation
+
+The documentation site (MkDocs with Material, sources in `docs/`) holds the methodology,
+the concepts, how-to guides, the reference (the formats, the CLI and the API from the
+docstrings):
+
+```sh
+uv run mkdocs serve          # http://127.0.0.1:8000, rebuilt as you edit
+uv run mkdocs build --strict # the gate's check
+```
+
+## Development
+
+Python 3.14, uv. See [AGENTS.md](AGENTS.md) for the rules and conventions.
+
+```sh
+uv sync                      # .venv with the library and the dev tools
+scripts/install-hooks.sh     # pre-push runs the local gate
+scripts/ci_local.sh          # ruff, format, mypy --strict, the docs, pytest + coverage
+```
+
+`.github/workflows/ci.yml` runs the same gate on every push to `main` and every
+pull request, docs included; the pre-push hook runs it first.
+
+## License
+
+MIT: see [LICENSE](LICENSE).

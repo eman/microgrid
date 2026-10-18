@@ -1,0 +1,97 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "microgrid"
+version = "0.1.0.dev0"
+description = "A plant model and marginal energy prices for a solar + battery microgrid: data in, data out"
+readme = "README.md"
+requires-python = ">=3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Emmanuel Levijarvi", email = "emansl@gmail.com" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+# The sources a sources/1 file names (microgrid now, sources, fetch): Home Assistant over
+# HTTP, and the named tools' payloads checked as read. The engine needs none of it.
+sources = ["httpx>=0.28", "pydantic>=2.11"]
+
+[dependency-groups]
+test = [
+    "hypothesis>=6.135",
+    "jsonschema>=4.23",
+    "rfc3339-validator>=0.1.4",  # so the schema's date-time format is checked
+    "pytest>=8.4",
+    "pytest-asyncio>=1.1",
+    "pytest-cov>=6.2",
+]
+quality = [
+    "mypy>=1.17",
+    "ruff>=0.12",
+    "types-jsonschema>=4.23",
+]
+docs = [
+    # The documentation site (mkdocs.yml): `uv run mkdocs serve`.
+    "mkdocs-material>=9.7",
+    "mkdocstrings[python]>=1.0",
+]
+dev = [
+    { include-group = "test" },
+    { include-group = "quality" },
+    { include-group = "docs" },
+    # The sources extra, so the gate covers the readers.
+    "microgrid[sources]",
+]
+
+[project.scripts]
+microgrid = "microgrid.cli.main:main"
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/microgrid"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "ANN", "C4", "RET", "SIM", "PTH", "RUF"]
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+python_version = "3.14"
+plugins = ["pydantic.mypy"]
+files = ["src", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+asyncio_mode = "strict"
+markers = [
+    "live: needs the site's HA, EMQX or InfluxDB; never run by the local gate",
+]
+
+[tool.coverage.run]
+source = ["microgrid"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

@@ -1,0 +1,6 @@
+# The example dataset's engine (engine/1): prices fetched hourly.
+schema = "engine/1"
+price_max_age_minutes = 60
+
+# The make-up rule: the pricing before 2026-10-17 (pricing/1.1), exactly.
+battery_value = "replacement"

@@ -1,0 +1,21 @@
+48 valuations every 1:00:00 scored, 7053 slots inside the span; fell back (not scored): 0; no prices: 0
+
+surplus kW against the PV exported or curtailed, by hours ahead:
+bucket       n     bias     MAE   p10 n   p10 met
+0-1h        288   +0.016   0.019      27   100.0%
+1-3h        558   +0.026   0.029      47   100.0%
+3-12h      2214   -0.006   0.038     105   100.0%
+12-48h     3993   -0.020   0.074     126   100.0%
+
+marginal cost against the price a kWh realised (USD/kWh), by hours ahead:
+bucket       n  outcomes     bias     MAE    off
+0-1h        246        11  -0.0007  0.0043   2.4%
+1-3h        474        11  -0.0011  0.0047   6.3%
+3-12h      1836        10  -0.0002  0.0041  16.5%
+12-48h     2610         6  +0.0022  0.0032   2.9%
+
+regime against the metered regime:
+  0-1h     278 of 288 agreed
+  1-3h     540 of 558 agreed
+  3-12h    2170 of 2214 agreed
+  12-48h   3907 of 3993 agreed

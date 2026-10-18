@@ -1,0 +1,70 @@
+{
+  "format": "dataset/1",
+  "entries": {
+    "pv": {
+      "file": "series/pv.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "grid": {
+      "file": "series/grid.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "battery": {
+      "file": "series/battery.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "house": {
+      "file": "series/house.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "inverter": {
+      "file": "series/inverter.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "import_price": {
+      "file": "series/import_price.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "export_price": {
+      "file": "series/export_price.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "soc": {
+      "file": "series/soc.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "battery_first": {
+      "file": "series/battery_first.json",
+      "kind": "bool",
+      "forecasts": false
+    },
+    "heartbeat": {
+      "file": "series/heartbeat.json",
+      "kind": "number",
+      "forecasts": false
+    },
+    "pv_forecast": {
+      "file": "forecasts/pv_forecast.json",
+      "kind": "quantiles",
+      "forecasts": true
+    },
+    "load_forecast": {
+      "file": "forecasts/load_forecast.json",
+      "kind": "number",
+      "forecasts": true
+    },
+    "prices": {
+      "file": "forecasts/prices.json",
+      "kind": "price",
+      "forecasts": true
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# The example dataset's plant: plant.examples' ac_coupled_hybrid (plant/2).
+schema = "plant/2"
+timezone = "Europe/Berlin"
+
+[[pv]]
+name = "roof"
+coupling = "ac"
+
+[battery]
+capacity_kwh = 12.0
+charge_kw = 6.0
+discharge_kw = 6.0
+eta_charge = 0.96
+eta_discharge = 0.96
+reserve_soc = 0.1
+wear_charge_per_kwh = 0.02
+wear_discharge_per_kwh = 0.02
+loss_charge_per_kw = 0.003
+loss_discharge_per_kw = 0.003
+meter_charge = 0.99
+meter_discharge = 1.0
+connection = "dc_bus"
+form = "folded"
+
+[hybrid]
+standby_kw = 0.03
+working_kw = 0.06
+
+[dispatch]
+
+[[dispatch.grid_charge]]
+start = "01:00:00"
+end = "05:00:00"
+target_soc = 0.6
+timing = "late"

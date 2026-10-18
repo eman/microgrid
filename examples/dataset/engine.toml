@@ -1,0 +1,3 @@
+# The example dataset's engine (engine/2): prices fetched hourly.
+schema = "engine/2"
+price_max_age_minutes = 60

@@ -1,0 +1,10 @@
+"""microgrid: a solar + battery plant modelled, and its marginal energy prices.
+
+- :mod:`microgrid.plant`: the plant model and its simulator, on their own: a plant
+  described as data (``plant/2``), projected slot by slot. No I/O.
+- :mod:`microgrid.engine`: the marginal prices, a client of the plant model. Data in,
+  data out: no I/O.
+- :mod:`microgrid.cli`: the ``microgrid`` command, the library run on a dataset's files
+  (``dataset/1``) or on a site's live sources (``sources/1``, the ``sources`` extra). A
+  client of the public names, as any other.
+"""

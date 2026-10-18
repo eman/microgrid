@@ -1,0 +1,40 @@
+# The gate on every push to main and every pull request: the same script the
+# pre-push hook runs (scripts/ci_local.sh), so a green hook predicts a green
+# run. Docs and Markdown are read by a check (the gate builds the documentation
+# site strictly, mkdocs build --strict), so they start a run too.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**"
+      - "!.claude/**"
+      - "!.env.example"
+  pull_request:
+    branches: [main]
+    # Repeated rather than shared through a YAML anchor: the Actions workflow
+    # parser does not resolve anchors (actions/runner#1182).
+    paths:
+      - "**"
+      - "!.claude/**"
+      - "!.env.example"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned by commit (security review, 2026-10-17): a tag can be moved.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+      - run: uv python install 3.14
+      - run: scripts/ci_local.sh
+      # An example with a gate of its own (none in the published library).
+      - run: for gate in examples/*/scripts/ci_local.sh; do if [ -x "$gate" ]; then "$gate"; fi; done

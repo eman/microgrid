@@ -1,0 +1,37 @@
+# Secrets: never commit.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# The documentation site's build (mkdocs.yml)
+/site/
+
+# Runtime
+/tmp/
+*.log
+
+# Agent worktrees (Claude Code)
+.claude/worktrees/
+
+# Development records: kept locally, never published (the decisions, the research,
+# their index and notes).
+/docs/adr/
+/docs/research/
+/docs/INDEX.md
+/docs/load-forecast.md
