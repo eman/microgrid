@@ -20,8 +20,10 @@ full() {
 }
 zero=0000000000000000000000000000000000000000
 changed=""
+pushed=0
 while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue  # a deleted branch: nothing to check
+  pushed=1
   if [ "$remote_sha" = "$zero" ]; then  # a new branch: against main
     base="$(git merge-base "$local_sha" origin/main 2>/dev/null || true)"
   else
@@ -32,6 +34,7 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   fi
   changed+="$(git diff --name-only "$base" "$local_sha")"$'\n'
 done
+[ "$pushed" = 1 ] || exit 0  # only deletions: no commit to check
 if [ -n "${changed//$'\n'/}" ] && ! grep -qvE '^(docs/.*|.*\.md|mkdocs\.yml)$' <<<"$(grep -v '^$' <<<"$changed")"; then
   exec "$root/scripts/ci_local.sh" --docs
 fi
