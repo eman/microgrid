@@ -54,7 +54,8 @@ The first version, under the MIT license.
 
 - **Versions and releases:** semantic versioning, explained beside the formats', the
   API's and the model's versions (`docs/reference/versions.md`); `microgrid --version`
-  prints the release with the API and the model it carries. Releases are published to
+  prints the release with the API (`engine-api/5`) and the model (`pricing/1.3`) it
+  carries. Releases are published to
   PyPI from a tag (`vX.Y.Z`).
 
 ### Added (documentation)

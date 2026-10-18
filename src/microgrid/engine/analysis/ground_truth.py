@@ -200,14 +200,18 @@ def net_inverter_kw(plant: Plant, flow: SlotFlow) -> float:
     of its own draw: what its AC meter reads. On a hybrid's DC bus the hybrid is the
     converter, and it meters all it converts (``SlotDispatch.crossing_ac``): the
     battery's flows, DC PV crossing to the AC side and the AC it takes for DC-bus loads.
-    On its own inverter, what the battery delivers (an export too) less what it takes."""
+    On its own inverter, what the battery delivers (an export too) less what it takes,
+    as for a model that does not give the hybrid's AC."""
     config = plant.config
     part = config.battery
-    if part is not None and part.connection == "dc_bus":
-        return flow.dispatch.crossing_ac - flow.inverter_draw
-    # The draw the projection settled on (standby, or working too), not worked out again,
-    # less a hybrid's standby beside the battery's own inverter: the projection draws
-    # both (``Paths.standby_kw``), the battery's converter meters its own.
+    crossing_ac = flow.dispatch.crossing_ac
+    if part is not None and part.connection == "dc_bus" and crossing_ac is not None:
+        return crossing_ac - flow.inverter_draw
+    # The battery's own flows: its own inverter's, or, from a plant model that does not
+    # give the hybrid's AC, a hybrid's with AC PV and no DC-bus load. The draw the
+    # projection settled on (standby, or working too), not worked out again, less a
+    # hybrid's standby beside the battery's own inverter: the projection draws both
+    # (``Paths.standby_kw``), the battery's converter meters its own.
     hybrid = config.hybrid
     beside = hybrid is not None and hybrid is not config.battery_inverter
     draw = flow.inverter_draw - (hybrid.standby_kw if beside and hybrid is not None else 0.0)

@@ -155,7 +155,8 @@ class SlotDispatch:
     (``SlotFlow.dispatch`` left at its default) gets every field's default: no hold, no
     grid-charge window (the price rule reads the grid charging the battery instead), no
     battery-export run's end, no PV clipped on a DC bus, all unserved load reachable,
-    and no hold session.
+    no hold session, and no hybrid's AC (the ground truth then meters a battery on a
+    DC bus by its own flows, which leaves out DC PV and DC-bus loads crossing).
 
     **What reads it.** The price rule reads ``held``, ``topup_gap``, ``run_end``,
     ``bus_clipped`` and ``unserved_unreachable`` (through
@@ -185,8 +186,9 @@ class SlotDispatch:
     #: its AC meter reads before its own draw, the battery's flows, the DC PV crossing
     #: and the AC it takes for DC-bus loads all in it. Each part's own, so a slot run
     #: in parts holds their mean (the curve at the mean ``crossing`` is not it). 0
-    #: without a hybrid, and for metered flows.
-    crossing_ac: float = 0.0
+    #: without a hybrid; None for metered flows and a plant model that does not give
+    #: it.
+    crossing_ac: float | None = None
     #: What the battery took in at its port and gave out over the slot, kW, each >= 0 in
     #: ``battery_port``'s terms: a metered slot can both charge and discharge, which the
     #: net ``battery_port`` hides. A plant model that leaves both at 0 gets its storage's

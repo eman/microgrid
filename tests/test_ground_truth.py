@@ -259,6 +259,17 @@ def test_the_models_inverter_power_on_the_dc_bus_keeps_the_hybrids_own_draw() ->
     assert net_inverter_kw(plant, idle) == pytest.approx(0.0)
 
 
+def test_a_model_without_the_hybrids_ac_is_metered_by_the_batterys_flows() -> None:
+    # A plant model that leaves ``SlotDispatch`` at its defaults, its battery on the
+    # hybrid's DC bus: the battery's own flows, as on its own inverter.
+    plant = plant_of(EXAMPLE_PLANT, connection="dc_bus")
+    serving = SlotFlow(
+        start=AT, soc_start=0.5, soc_end=0.4, battery_to_load=2.0, inverter_draw=0.09
+    )
+    assert serving.dispatch.crossing_ac is None
+    assert net_inverter_kw(plant, serving) == pytest.approx(2.0 - 0.09)
+
+
 def test_the_models_inverter_power_counts_the_battery_export() -> None:
     exporting = SlotFlow(
         start=AT,
