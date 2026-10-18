@@ -223,14 +223,14 @@ class EnergyValue:
 
     #: Per kWh, expected over the PV scenarios.
     price: tuple[float, ...]
-    #: Per kWh in the pessimistic PV case (tariffkit#67 R-13): priced on Solcast's p10.
+    #: Per kWh in the pessimistic PV case (R-6): priced on Solcast's p10.
     price_p10: tuple[float, ...]
     #: Scenario weight in which the kWh costs only exported or curtailed PV (0-1).
     certainty_spill: tuple[float, ...]
     #: Scenario weight in which the sun charges the battery enough for the
     #: expensive hours ahead (0-1).
     certainty_covered: tuple[float, ...]
-    #: Values by source (tariffkit#67 R-2, R-3), expected over the scenarios in
+    #: Values by source (R-2, R-3), expected over the scenarios in
     #: which the source has energy to give (None: in none). A PV kWh diverted to a
     #: flexible load, and how that PV was routed; a battery kWh drawn for one, and
     #: what the battery buys it back with.
@@ -246,7 +246,7 @@ class EnergyValue:
 
 
 class PvRouting(StrEnum):
-    """Where a PV kWh would have gone had no flexible load taken it (tariffkit#67 R-3).
+    """Where a PV kWh would have gone had no flexible load taken it (R-3).
 
     In declaration order: a tie in scenario weight goes to the first.
     """
@@ -257,7 +257,7 @@ class PvRouting(StrEnum):
 
 
 class Displaces(StrEnum):
-    """What a battery kWh drawn now is bought back with (tariffkit#67 R-3).
+    """What a battery kWh drawn now is bought back with (R-3).
 
     In declaration order: a tie in scenario weight goes to the first, the import.
     """

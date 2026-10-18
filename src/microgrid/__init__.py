@@ -7,4 +7,6 @@
 - :mod:`microgrid.cli`: the ``microgrid`` command, the library run on a dataset's files
   (``dataset/1``) or on a site's live sources (``sources/1``, the ``sources`` extra). A
   client of the public names, as any other.
+
+A requirement cited as R-n is the documentation's (``docs/methodology/requirements.md``).
 """

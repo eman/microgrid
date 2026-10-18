@@ -61,7 +61,7 @@ def forecast_surplus(
 ) -> SurplusForecast:
     """Project both PV cases through ``plant`` and derive surplus, regime and surplus
     value. A projection ends at the first slot whose PV or load is unknown; every
-    later slot is None (the ``plant_model`` cause, tariffkit#67 R-14). ``soc`` is None
+    later slot is None (the ``plant_model`` cause, R-7). ``soc`` is None
     for a plant without a battery. ``dc_load_kw`` is the DC-bus loads' (None: none
     draws), unknown where a slot's is None."""
     durations = [step] * len(starts)
@@ -107,7 +107,7 @@ def forecast_surplus(
     return SurplusForecast(
         starts=tuple(starts),
         surplus_kw=padded(expected.kw),
-        # The pessimistic case never exceeds the expected one (tariffkit#67 R-13).
+        # The pessimistic case never exceeds the expected one (R-6).
         surplus_kw_p10=padded(
             [min(low, high) for low, high in zip(pessimistic.kw, expected.kw, strict=False)]
         ),

@@ -1,5 +1,5 @@
-"""What serves a kWh, values by source and the supply stack (tariffkit#67 R-2, R-3,
-R-10)."""
+"""What serves a kWh, values by source and the supply stack (R-2, R-3,
+R-5)."""
 
 from datetime import UTC, datetime, time, timedelta
 from functools import partial

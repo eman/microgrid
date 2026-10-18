@@ -96,7 +96,7 @@ def test_the_live_value_is_unknown_while_the_heartbeat_is_silent(tmp_path: Path)
     silent = found[datetime(2026, 10, 22, 12, 10, tzinfo=UTC)]
     # The client's cause beside the engine's, which name what it could not read.
     assert silent.external == (TELEMETRY,) and Cause.PV_POWER in silent.degraded
-    # Telemetry silent: the import price and no surplus (tariffkit#67 R-14).
+    # Telemetry silent: the import price and no surplus (R-7).
     assert silent.marginal_cost == silent.p_import and silent.surplus_kw == 0.0
     alive = found[datetime(2026, 10, 22, 11, 50, tzinfo=UTC)]
     assert alive is not None and alive.degraded == ()
@@ -390,7 +390,7 @@ def test_replay_leaves_a_fallback_unscored(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # Without a load forecast every valuation falls back: counted, not scored
-    # (tariffkit#67 R-14).
+    # (R-7).
     entries = {k: v for k, v in read_dataset(EXAMPLE).entries.items() if k != LOAD_FORECAST}
     write_dataset(tmp_path, entries)
     for name in ("plant.toml", "engine.toml"):

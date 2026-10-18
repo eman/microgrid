@@ -233,6 +233,4 @@ page](stored-value.md) says; under `replacement`, the event ahead prices it.
 ## What the rule does not decide
 
 Whether, when or how much the plant charges from the grid. The grid-charge window is
-part of the plant's configuration, and the rule prices the purchase it implies. Deciding
-when to charge or discharge belongs to a controller; the prices are advice
-([Scope](scope.md)).
+part of the plant's configuration, and the rule prices the purchase it implies.

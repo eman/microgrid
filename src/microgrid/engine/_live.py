@@ -99,7 +99,7 @@ def smoothed(
     to it: the average of the measured signal itself, whatever the samples' spacing. The
     run's first value starts the average; one before :func:`window` starts it at the
     window's start. ``tau`` of zero is no smoothing: the value in force. Past
-    ``known_until`` there is no value (never carried across a gap, tariffkit#67 R-14).
+    ``known_until`` there is no value (never carried across a gap, R-7).
 
     ``jump`` (kW): a value further than this from the average is held back until a later
     one agrees with it to within ``jump``, or until it has held :data:`JUMP_CONFIRM`, and
@@ -198,7 +198,7 @@ def revalue(
     measured_dc_load_kw: float | None = None,
     lots: Lots | None = None,
 ) -> LiveValuation:
-    """An issue's valuation (``model``) again from now (tariffkit#67 R-4).
+    """An issue's valuation (``model``) again from now (R-4).
 
     The window ``[now, now + step)`` runs at measured PV and load from the measured
     ``soc`` (0-1): a full slot wherever ``now`` falls, so a steady input gives a steady

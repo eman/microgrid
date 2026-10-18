@@ -52,5 +52,5 @@ The first version, under the MIT license.
 
 ### Added (documentation)
 
-- **The documentation site**, built with `mkdocs`: the methodology, the concepts,
-  how-to guides and the reference.
+- **The documentation:** the methodology and the library's requirements (R-1 to R-9),
+  the concepts, how-to guides and the reference.

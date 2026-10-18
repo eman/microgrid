@@ -2,8 +2,8 @@
 
 `microgrid` is a library that models a solar + battery plant (`microgrid.plant`) and
 produces **marginal energy prices** from it (`microgrid.engine`): what one more kWh
-costs, slot by slot over a horizon, and the value of energy by source
-(eman/tariffkit#67). The plant model also stands alone, without the price code.
+costs, slot by slot over a horizon, and the value of energy by source. The plant model
+also stands alone, without the price code.
 
 - **Data in, data out.** No I/O: a client hands in the plant's configuration
   (`plant/2`) and its inputs as time series (prices, PV and load forecasts, the
@@ -11,10 +11,9 @@ costs, slot by slot over a horizon, and the value of energy by source
 - **The plant model** takes its topology as configuration: PV of either coupling,
   a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
   grid's limits and charge windows.
-- **Not a tariff engine** (prices are an input), **not a load forecaster** (the
-  load forecast is an input) and **not a controller**: it decides nothing.
 
-How the prices are made is in the documentation's methodology (`docs/methodology/`).
+The documentation is in [`docs/`](docs/index.md): how the prices are made, the concepts,
+how-to guides and the reference.
 
 ## The command
 
@@ -50,19 +49,7 @@ uv run microgrid fetch --sources sources.toml --from 2026-10-01 --to 2026-10-08 
 ```
 
 A time without an offset is the plant's local time (an hour that repeats, the first
-time; one the clocks skip is refused). `scripts/make_example_dataset.py` makes the
-example and `scripts/make_expected_outputs.py` the outputs its end-to-end test holds.
-
-## Documentation
-
-The documentation site (MkDocs with Material, sources in `docs/`) holds the methodology,
-the concepts, how-to guides, the reference (the formats, the CLI and the API from the
-docstrings):
-
-```sh
-uv run mkdocs serve          # http://127.0.0.1:8000, rebuilt as you edit
-uv run mkdocs build --strict # the gate's check
-```
+time; one the clocks skip is refused).
 
 ## Development
 
@@ -73,9 +60,6 @@ uv sync                      # .venv with the library and the dev tools
 scripts/install-hooks.sh     # pre-push runs the local gate
 scripts/ci_local.sh          # ruff, format, mypy --strict, the docs, pytest + coverage
 ```
-
-`.github/workflows/ci.yml` runs the same gate on every push to `main` and every
-pull request, docs included; the pre-push hook runs it first.
 
 ## License
 

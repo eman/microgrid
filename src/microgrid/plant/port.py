@@ -167,7 +167,7 @@ class PlantModel(Protocol):
         approximation). It validates only what it receives: every value is known,
         because the caller builds ``durations`` and ends its inputs at the first unknown
         slot, and a projection shorter than the horizon is the ``plant_model`` cause
-        (tariffkit#67 R-14). A what-if is the same call with a different load. ``stop``
+        (R-7). A what-if is the same call with a different load. ``stop``
         ends the projection early (a what-if, once the battery agrees again): the price
         model no longer asks for it, but it is kept for the port's
         stability and for the tests' re-simulation oracle (``engine_fixtures.rerun_cost``).

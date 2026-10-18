@@ -69,5 +69,6 @@ flowchart TD
 | [The battery's lots](lots.md) | Where the energy in the battery came from, and what it cost |
 | [The live value](live-value.md) | The price now, from the meters, between valuations |
 | [Missing and stale inputs](degradation.md) | Why a missing input moves the price toward the import price |
-| [Scope](scope.md) | What a client brings, and why the prices are advice only |
+| [Scope](scope.md) | What a client brings, and what the library can't model |
+| [Requirements](requirements.md) | What the library holds itself to (R-1 to R-9) |
 

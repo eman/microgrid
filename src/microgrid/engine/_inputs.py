@@ -73,7 +73,7 @@ class Inputs:
     #: (:class:`~microgrid.engine.ledger.Lots`, a client's ledger). A battery kWh is priced
     #: at the running average cost of all it holds (``Lots.pool``; ``Pricing.battery_value``);
     #: without them, all it holds is of unknown origin, at the import price, and the output
-    #: names ``battery_lots`` (tariffkit#67 R-14), the valuation standing.
+    #: names ``battery_lots`` (R-7), the valuation standing.
     lots: Series[Lots] | None = None
 
 

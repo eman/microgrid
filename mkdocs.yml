@@ -126,6 +126,7 @@ nav:
       - The live value: methodology/live-value.md
       - Missing and stale inputs: methodology/degradation.md
       - Scope: methodology/scope.md
+      - Requirements: methodology/requirements.md
   - Concepts:
       - concepts/index.md
       - Slots and the horizon: concepts/slots-horizon.md

@@ -42,7 +42,7 @@ or what the meter shows when the model held nothing, has no known cost. It is
 kept apart (:attr:`Source.UNKNOWN`) at no value, reported as such, and never
 sets a floor (:func:`floor_per_kwh`). The price values it at the import price, as
 if bought (:func:`blended_basis`'s ``unknown_basis``): not knowing what it cost moves
-the price toward the import, as every missing input does (tariffkit#67 R-14).
+the price toward the import, as every missing input does (R-7).
 
 **Efficiencies.** A charge is booked through the plant's paths where the caller gives
 the slot as the plant model's (:class:`Ledger`): each source's stored kWh per kWh, by
@@ -208,7 +208,7 @@ class Ledger:
     ) -> None:
         """``unknown_kwh``: what the battery holds now, of unknown origin: at no cost in
         the lots; in the pool at ``unknown_basis`` per stored kWh, else at the first
-        slot's import price, as if bought (tariffkit#67 R-14: toward the import),
+        slot's import price, as if bought (R-7: toward the import),
         through ``storage``'s grid path where given. What the meter later finds in an
         empty model is priced at that slot's import."""
         self._battery = battery
@@ -275,7 +275,7 @@ class Ledger:
         battery = self._battery
         storage = self._storage
         # Energy of unknown origin, priced as if bought: the import, per stored kWh
-        # (tariffkit#67 R-14: a missing input moves the price toward the import).
+        # (R-7: a missing input moves the price toward the import).
         if storage is not None:
             basis = grid_price / storage.stored_per_kwh(ChargeSource.GRID)
         else:

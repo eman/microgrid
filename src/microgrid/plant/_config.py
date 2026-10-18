@@ -225,7 +225,7 @@ class GridLimits:
 
 @dataclass(frozen=True, slots=True)
 class Load:
-    """A load, by where it connects. The load forecast owns its kW (tariffkit#67 R-17)."""
+    """A load, by where it connects. The load forecast owns its kW (R-9)."""
 
     name: str
     connection: Connection = "ac"

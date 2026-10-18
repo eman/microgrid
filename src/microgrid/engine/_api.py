@@ -9,7 +9,7 @@ received by then, nothing after. It fetches nothing and sends nothing; it return
 :class:`Valuation`, which the client publishes as it likes. :class:`LiveSession` runs
 a valuation again from measured readings, between valuations.
 
-**Fallback is the engine's** (tariffkit#67 R-14). What the
+**Fallback is the engine's** (R-7). What the
 client cannot vouch for (a silent telemetry path, an ``unavailable`` state) is a
 sample without a value, or a series vouched for (``known_until``) only up to when the
 path went quiet. An SOC outside 0-1 by more than ``EngineConfig.soc_tolerance`` is a
@@ -106,7 +106,7 @@ MODEL_VERSION: Final = "pricing/1.3"
 
 #: The default age past which a price forecast cannot be used (``EngineConfig.
 #: price_max_age``: without a limit, a price issue however old would be reused, against
-#: tariffkit#67 R-14). A day: the longest a price source the library reads goes
+#: R-7). A day: the longest a price source the library reads goes
 #: between issues (a day-ahead market publishes once a day), and two hours' grace for a
 #: publication or a fetch running late. A client that fetches more often sets less (an
 #: hourly fetch, 60 minutes).
@@ -197,7 +197,7 @@ class SlotValue:
     marginal_cost_p10: float
     certainty_spill: float
     certainty_covered: float
-    #: Values by source (tariffkit#67 R-2, R-3); None where the source has none.
+    #: Values by source (R-2, R-3); None where the source has none.
     pv_value: PvValue | None
     battery_value: BatteryValue | None
     #: The supply stack in the median PV case.
@@ -483,7 +483,7 @@ def _load_states(
     unknown with known ones after it) cut it. A published forecast reaches a fixed span
     from when it was made, so an issue made later reaches past it, and a slot without a
     value is never guessed. Unknown at the slot under way, the load is
-    the ``load_forecast`` cause (tariffkit#67 R-14)."""
+    the ``load_forecast`` cause (R-7)."""
     if any(kw is None for kw in given):
         return starts, False, False
     known = tuple(
@@ -708,7 +708,7 @@ def _resolve_inputs(config: EngineConfig, inputs: Inputs, at: datetime) -> _Reso
 
 def _no_spread(config: EngineConfig, r: _Resolved) -> bool:
     """A PV forecast with no quantile below its median in a slot valued: the pessimistic
-    case is the median there, and the valuation names ``pv_spread`` (tariffkit#67 R-13)."""
+    case is the median there, and the valuation names ``pv_spread`` (R-6)."""
     if not config.plant.has_pv:
         return False
     slots = list(r.stepped or ())
@@ -719,7 +719,7 @@ def _no_spread(config: EngineConfig, r: _Resolved) -> bool:
 
 def _lots_missing(config: EngineConfig, lots: Lots | None) -> bool:
     """A battery priced at its stored cost without its lots: all it holds is of unknown
-    origin, at the import (tariffkit#67 R-14), and the output names ``battery_lots``."""
+    origin, at the import (R-7), and the output names ``battery_lots``."""
     return (
         lots is None
         and config.plant.storage is not None
@@ -752,7 +752,7 @@ class _Run:
 
 def _fallback(r: _Resolved) -> _Run:
     """Without the model: no surplus, no source values, every kWh imported
-    (tariffkit#67 R-14)."""
+    (R-7)."""
     count = len(r.starts)
     zeros = (0.0,) * count
     return _Run(
@@ -971,7 +971,7 @@ class Engine:
         ``EngineConfig.smoothing``, its ``load_jump_kw``), from the measured SOC, then
         the valuation's forecast. Surplus is what that slot would export or curtail.
         When the grid is serving the house now, beyond the plant's regulation, a kWh
-        used now is imported too. The averages restart at a gap (tariffkit#67 R-14); the
+        used now is imported too. The averages restart at a gap (R-7); the
         warm-up after the client began reading publishes no surplus, one after a gap is
         the fallback. A series need reach back only ``EngineConfig.smoothing_window``
         from ``at``, and the sample in force then.
@@ -980,7 +980,7 @@ class Engine:
         cannot read): any makes the value the fallback. The engine names its own whatever
         the client names, and keeps the client's beside them (``external``).
         ``valid_until`` is required with a valuation: without it a valuation of any age
-        would be run again as current (tariffkit#67 R-14).
+        would be run again as current (R-7).
         """
         if not isinstance(inputs, Inputs):
             raise TypeError(f"live takes Inputs, not {type(inputs).__name__}")
@@ -1053,7 +1053,7 @@ def _keep[T](kept: list[Sample[T]], sample: Sample[T], begin: datetime) -> None:
 
 
 #: The causes a value is named with and still stands on (values toward the import,
-#: tariffkit#67 R-14).
+#: R-7).
 _STANDING: Final = frozenset({Cause.BATTERY_LOTS, Cause.PV_SPREAD})
 
 

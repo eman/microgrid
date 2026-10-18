@@ -86,7 +86,7 @@ def test_a_draw_takes_the_average_so_the_draw_order_does_not_move_it() -> None:
 
 
 def test_energy_of_unknown_origin_is_priced_as_bought_at_the_first_import() -> None:
-    """Not knowing what it cost moves the price toward the import (tariffkit#67 R-14)."""
+    """Not knowing what it cost moves the price toward the import (R-7)."""
     ledger = Ledger(BATTERY, unknown_kwh=5.0)
     ledger.step(EVENING, None, 1.0, pv_price=EXPORT, grid_price=NIGHT, stored_after=None)
     assert ledger.pool.unit == pytest.approx(NIGHT / STORED_PER_AC)

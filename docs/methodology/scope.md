@@ -18,13 +18,6 @@ Each is a series ([Inputs](../concepts/inputs.md)). None of the sources is assum
 a [`sources/1` file](../configuration/data-sources.md) names a provider per input, or a
 client hands the series over from a [dataset](../reference/dataset.md) or Python.
 
-## Advisory only
-
-The prices are advice. The library decides nothing and drives no device: it does not
-tell the battery to charge, start a load, or change the plant's mode. The plant model
-describes what the plant does on its own rules, and the price says what a kWh costs
-under those rules.
-
 ## What it can't model
 
 - **Tariffs beyond a per-kWh price.** Prices are an import and an export price per kWh,

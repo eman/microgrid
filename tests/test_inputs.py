@@ -107,7 +107,7 @@ def _inputs(**overrides: object) -> Inputs:
 
 def test_a_battery_without_its_lots_is_valued_and_names_them() -> None:
     """Missing lots: all the battery holds is of unknown origin, at the import
-    (tariffkit#67 R-14), named ``battery_lots``; the valuation stands. Stale lots are
+    (R-7), named ``battery_lots``; the valuation stands. Stale lots are
     missing lots."""
     given = Engine(_config()).value(_inputs(), at=NOW)
     none = Engine(_config()).value(_inputs(lots=None), at=NOW)

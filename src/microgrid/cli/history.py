@@ -370,7 +370,7 @@ def stored_costs(
     under the stored-cost rule. From ``lots`` (the ledger the valuations read, so both
     sides start alike) where they are in force; else the ledger over ``recorded``, all
     it held at the window's start of unknown origin, at the first slot's import, as if
-    bought (tariffkit#67 R-14)."""
+    bought (R-7)."""
     battery, storage = plant.battery, plant.storage
     found: list[float | None] = []
     if not recorded.starts or storage is None:

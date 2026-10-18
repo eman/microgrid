@@ -1,10 +1,8 @@
 """The supply stack of a slot.
 
-tariffkit#67 R-10: values are for a marginal kWh; say how large a load can be
-before the marginal value stops holding, "for example when a load shifts the
-battery's state of charge enough to change routing". The stack answers it with
-quantities: how much power each price holds for (docs/methodology/stored-value.md,
-*The supply stack*).
+R-5: values are for one more kWh, and the supply stack says how large a load can be
+before the price it pays changes. The stack answers it with quantities: how much power
+each price holds for (docs/methodology/stored-value.md, *The supply stack*).
 
 **The stack** (:func:`supply_stack`): a slot's energy comes in steps, each
 with its power and its price, in the order the plant serves a load from them

@@ -198,7 +198,7 @@ def no_dc_forecast(now: datetime, horizon: timedelta, step: timedelta = SLOT) ->
     slot beyond, as one interval, so it holds every slot of the valuation whatever their
     length; issued at ``now`` (so it never makes the load forecast's ``as_of`` older than
     the house's). The plant model then holds the battery for a session only from the SOC
-    it reads (the hold rule; nothing here forecasts a load: tariffkit#67 R-17). A
+    it reads (the hold rule; nothing here forecasts a load: R-9). A
     client that values on it says so: :data:`ASSUMED_DC_LOAD`."""
     require_utc(now)
     first = slot_floor(now, step)

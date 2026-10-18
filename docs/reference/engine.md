@@ -85,8 +85,9 @@ the scoring shows events the plant did not have, raise that floor.
 - **The forecasts' ages**: how each is judged is in [Series and
   forecasts](../concepts/series.md#how-the-engine-reads-them-at-a-moment).
   `price_max_age_minutes = 1560`: a day-ahead market publishes once a day, and two hours'
-  grace for a late publication or fetch; a stale price is never reused (tariffkit#67
-  R-14), and a source fetched hourly sets 60. `load_max_age_minutes = 90` was set for one plant's
+  grace for a late publication or fetch; a stale price is never reused
+  ([R-7](../methodology/requirements.md)), and a source fetched hourly sets 60.
+  `load_max_age_minutes = 90` was set for one plant's
   load forecaster, which publishes every half hour: three of its issues; one that
   publishes less often sets more. `pv_max_age_hours = 20`: a PV forecaster polled a few
   times a day.

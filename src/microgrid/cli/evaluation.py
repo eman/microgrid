@@ -2,8 +2,8 @@
 
 The questions: how far the forecast surplus is from
 the surplus that followed, by how far ahead it was forecast; how often the
-pessimistic surplus was in fact met (it should be about 90 %, tariffkit#67
-R-13); how the live value compares with the ten minutes that followed it;
+pessimistic surplus was in fact met (it should be about 90 %, R-6); how the live value
+compares with the ten minutes that followed it;
 and whether consumers were ever left without a valid issue.
 
 **Realised surplus** is PV the site sent out: grid export beyond the battery's

@@ -68,7 +68,7 @@ def test_a_nominal_valuation_is_the_price_curve_and_surplus_by_slot() -> None:
 def test_an_input_that_cannot_be_used_is_the_fallback(
     overrides: dict[str, object], cause: str
 ) -> None:
-    """tariffkit#67 R-14: the client passes what it has; the engine names what it could
+    """R-7: the client passes what it has; the engine names what it could
     not use, and every slot costs the import, with no surplus offered."""
     valuation = Engine(CONFIG).value(inputs(**overrides), at=NOW)
     assert valuation is not None
@@ -83,7 +83,7 @@ def test_a_load_forecast_ends_the_horizon_at_its_first_unknown_slot() -> None:
     made, so a later valuation reaches past it: the horizon ends there, as at PV's
     coverage (``_covered_prefix``). A slot without a value inside it ends it there too,
     and is named in ``degraded`` (a missing input is named) while the slots before it
-    are valued; unknown at the slot under way, it is the fallback (tariffkit#67 R-14)."""
+    are valued; unknown at the slot under way, it is the fallback (R-7)."""
     starts, kw = load_starts(), [0.7] * 288
     short = received(load_forecast(starts[:-3], kw[:-3]))
     valuation = Engine(CONFIG).value(inputs(load=short), at=NOW)

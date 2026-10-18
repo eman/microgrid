@@ -60,7 +60,7 @@ async def run(
     valued = 0
     unpriced = 0
     #: Times that fell back, by cause: counted, not scored (the fallback is no forecast;
-    #: tariffkit#67 R-14).
+    #: R-7).
     fell_back: Counter[str] = Counter()
     lots = await dataset_lots_async(setup, dataset, limits=limits)
     at = start

@@ -1,4 +1,4 @@
-"""Whether a valuation can rest on its inputs (tariffkit#67 R-14).
+"""Whether a valuation can rest on its inputs (R-7).
 
 If any input cannot be used, the valuation is ``fallback_import``: no surplus and every
 slot at the import price, with the causes named in ``degraded``. A stale discount is
@@ -46,7 +46,7 @@ class Cause(StrEnum):
     #: it holds is of unknown origin, at the import price. Named; the values stand.
     BATTERY_LOTS = "battery_lots"
     #: The PV forecast gives no quantile below its median (a point forecast, say): the
-    #: pessimistic case (``marginal_cost_p10``, ``surplus_kw_p10``; tariffkit#67 R-13) is the
+    #: pessimistic case (``marginal_cost_p10``, ``surplus_kw_p10``; R-6) is the
     #: median, as nothing is known of the downside. Named; the values stand.
     PV_SPREAD = "pv_spread"
 

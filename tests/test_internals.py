@@ -34,7 +34,7 @@ EXAMPLE = replace(CONFIG, plant=plant_of(EXAMPLE_PLANT))
 
 def test_a_model_that_did_not_run_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
     """Defensive: a surplus the plant model could not finish is no model
-    (tariffkit#67 R-14)."""
+    (R-7)."""
     real = forecast_surplus
 
     def unfinished(*args: Any, **kwargs: Any) -> Any:

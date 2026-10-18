@@ -99,7 +99,7 @@ def project_average(
     import it pays. After each slot the pool is scaled to the projection's stored energy,
     which takes a discharge at the average. Energy of unknown origin (all of it without
     ``lots``, or what appears in an empty pool) is priced as bought: the slot's import
-    per stored kWh through the grid's path at the charge limit (tariffkit#67 R-14: a
+    per stored kWh through the grid's path at the charge limit (R-7: a
     missing input moves the price toward the import). None where it holds nothing."""
     if not (len(flows) == len(hours) == len(p_import) == len(p_export)):
         raise ValueError("per-slot inputs must have the same length")

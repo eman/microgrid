@@ -623,7 +623,7 @@ def test_a_hybrid_without_a_battery_runs() -> None:
 
 
 def test_several_ac_loads_run_as_todays_on_their_one_series() -> None:
-    # The load forecast owns every load (tariffkit#67 R-17): AC loads arrive as one AC series.
+    # The load forecast owns every load (R-9): AC loads arrive as one AC series.
     config = PlantConfig(
         tz=PACIFIC,
         pv=(PvArray("pv", "ac"),),

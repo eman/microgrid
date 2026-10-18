@@ -1,4 +1,4 @@
-"""Whether a valuation can rest on its inputs (tariffkit#67 R-14)."""
+"""Whether a valuation can rest on its inputs (R-7)."""
 
 from datetime import UTC, datetime
 
