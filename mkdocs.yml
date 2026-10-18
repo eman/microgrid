@@ -3,6 +3,7 @@
 # Python handler (https://mkdocstrings.github.io/python/).
 site_name: microgrid
 site_description: A solar + battery plant modelled, and its marginal energy prices
+site_url: https://eman.github.io/microgrid/
 repo_url: https://github.com/eman/microgrid
 repo_name: eman/microgrid
 edit_uri: edit/main/docs/

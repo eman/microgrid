@@ -1,5 +1,5 @@
-# A release: a tag vX.Y.Z on main publishes that version to PyPI and makes its GitHub
-# release (AGENTS.md, *Releases*). The tag must match pyproject.toml's version, and the
+# A release: a tag vX.Y.Z on main publishes that version to PyPI, makes its GitHub
+# release and publishes its documentation site (AGENTS.md, *Releases*). The tag must match pyproject.toml's version, and the
 # gate must pass on the tagged commit, before anything is published.
 #
 # PyPI takes the upload by trusted publishing (OpenID Connect): no token is stored here.
@@ -76,3 +76,36 @@ jobs:
             on { print }
           ' CHANGELOG.md > notes.md
           gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notes.md
+
+  # The documentation site (GitHub Pages, https://eman.github.io/microgrid/): one site,
+  # the latest release's, published once PyPI has the version it describes. The
+  # github-pages environment takes tags v* alone.
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    # A job's permissions replace the workflow's: contents: read again, for the checkout.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write  # the Pages deployment
+    # Two releases tagged close together publish in turn, the later last.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+      - run: uv python install 3.14
+      # As the gate builds it (scripts/ci_local.sh).
+      - run: uv run --locked mkdocs build --strict --site-dir site
+        env:
+          NO_MKDOCS_2_WARNING: "1"
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5.0.1

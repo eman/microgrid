@@ -12,8 +12,9 @@ also stands alone, without the price code.
   a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
   grid's limits and charge windows.
 
-The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md): how the prices are made, the
-concepts, how-to guides and the reference.
+The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md),
+published with each release at `https://eman.github.io/microgrid/`:
+how the prices are made, the concepts, how-to guides and the reference.
 
 ## Install
 
