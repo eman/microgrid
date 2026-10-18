@@ -97,8 +97,9 @@ release's, with `.dev0`. To release `X.Y.Z`:
    (`uv version X.Y.Z`, which updates `uv.lock`). The gate passes.
 2. Tag that commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the
    tag is the version, runs the gate, builds, publishes to PyPI by trusted publishing
-   (the `pypi` environment) and makes the GitHub release, its notes the changelog's
-   section.
+   (the `pypi` environment), makes the GitHub release, its notes the changelog's
+   section, and publishes the documentation site to GitHub Pages (the `github-pages`
+   environment): one site, the latest release's.
 3. Then `pyproject.toml`'s version becomes the next one's `.dev0` (`uv version
    X.Y.(Z+1).dev0`).
 
