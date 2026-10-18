@@ -35,9 +35,10 @@ The [API reference for `extend`](../reference/api/extend.md) documents every mem
 `SlotFlow`'s fields, and `SlotDispatch`, the dispatch's bookkeeping the price rule reads
 (whether the plant holds the battery, how far a top-up is from its target). A model
 without that bookkeeping leaves it at its defaults. For a battery on a hybrid's DC bus,
-`check-plant` compares the hybrid's AC meter with `SlotDispatch.crossing_ac`, the AC
-the hybrid's net crossing gives; a model that leaves it out is scored on the battery's
-own flows, which miss DC PV and DC-bus loads crossing the hybrid.
+the ground truth (`microgrid.engine.analysis.ground_truth.project_against_meters`)
+compares the hybrid's AC meter with `SlotDispatch.crossing_ac`, the AC the hybrid's net
+crossing gives; a model that leaves it out is scored on the battery's own flows, which
+miss DC PV and DC-bus loads crossing the hybrid.
 
 ## Start from the library's model
 
