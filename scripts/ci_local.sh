@@ -3,9 +3,10 @@
 # pre-push hook (scripts/install-hooks.sh installs it), so a green hook predicts
 # a green run.
 set -euo pipefail
-# A hook runs with git's variables for its repository (GIT_DIR among them), and a git run
-# under them acts on that repository: uv, fetching a git dependency into its cache, runs
-# `git init --bare` there, which made the repository bare. The gate needs none of them.
+# A hook pushed from a linked worktree runs with GIT_DIR set to that worktree's git dir,
+# and a git run under it acts on the repository: uv, fetching a git dependency into its
+# cache, runs `git init --bare` there, which made the repository bare. The gate needs
+# none of git's variables.
 unset $(git rev-parse --local-env-vars)
 cd "$(dirname "$0")/.."
 
