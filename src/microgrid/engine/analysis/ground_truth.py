@@ -205,10 +205,8 @@ def net_inverter_kw(plant: Plant, flow: SlotFlow, house_kw: float) -> float:
         ac_to_dc = flow.pv_to_load + flow.grid_to_load + flow.battery_to_load - house_kw - draw
         out = flow.battery_to_load + flow.battery_export
         return out - flow.pv_to_battery - flow.grid_to_battery - ac_to_dc - draw
-    moving = flow.pv_to_battery + flow.grid_to_battery + flow.battery_to_load
-    inverter = plant.inverter
-    working = inverter.working_kw if moving > inverter.working_threshold_kw else 0.0
-    draw = inverter.standby_kw + working
+    # The draw the projection settled on (standby, or working too), not worked out again.
+    draw = flow.inverter_draw
     return flow.battery_to_load - flow.pv_to_battery - flow.grid_to_battery - draw
 
 

@@ -198,10 +198,14 @@ AT = datetime(2026, 6, 10, 19, 0, tzinfo=UTC)
 
 def test_the_models_inverter_power_is_out_positive_with_its_own_draw() -> None:
     # Hand-worked.
-    charging = SlotFlow(start=AT, soc_start=0.5, soc_end=0.6, pv_to_battery=3.0)
-    serving = SlotFlow(start=AT, soc_start=0.5, soc_end=0.4, battery_to_load=2.0)
-    idle = SlotFlow(start=AT, soc_start=0.5, soc_end=0.5)
     working = EXAMPLE_PLANT.standby_kw + EXAMPLE_PLANT.working_kw
+    charging = SlotFlow(
+        start=AT, soc_start=0.5, soc_end=0.6, pv_to_battery=3.0, inverter_draw=working
+    )
+    serving = SlotFlow(
+        start=AT, soc_start=0.5, soc_end=0.4, battery_to_load=2.0, inverter_draw=working
+    )
+    idle = SlotFlow(start=AT, soc_start=0.5, soc_end=0.5, inverter_draw=EXAMPLE_PLANT.standby_kw)
     assert net_inverter_kw(PLANT, charging, 0.0) == pytest.approx(-3.0 - working)  # in
     assert net_inverter_kw(PLANT, serving, 0.0) == pytest.approx(2.0 - working)  # out
     assert net_inverter_kw(PLANT, idle, 0.0) == pytest.approx(-EXAMPLE_PLANT.standby_kw)

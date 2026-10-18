@@ -499,6 +499,23 @@ def _flows(
     first=T0,
     connection="dc_bus",
 )
+# And the oracle's side: a battery holding 4e-140 of its capacity, threshold 0.
+@example(
+    native=NativePlant(
+        Battery(
+            10.0, 5.0, 6.0, 1.0, 1.0, saturation_soc=0.97, meter_charge=0.99, meter_discharge=1.01
+        ),
+        PACIFIC,
+        standby_kw=0.042,
+        working_kw=0.049,
+        working_threshold_kw=0.0,
+    ),
+    day=[(0.0, 0.0)],
+    soc=4.2095372266619e-140,
+    stop_at=0,
+    first=T0,
+    connection="ac",
+)
 def test_project_is_simulate(
     native: NativePlant,
     day: list[tuple[float, float]],
