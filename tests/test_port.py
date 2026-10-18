@@ -16,7 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from engine_fixtures import (
@@ -470,6 +470,35 @@ def _flows(
 
 @settings(max_examples=150)
 @given(plants, days, st.floats(0, 1), st.integers(0, 71), first_slots, connections)
+# Found by the search: on the DC bus the general dispatch ended a slot a rounding (4e-20
+# kWh) above a 6.5e-6 reserve, and the next slot's 3.6e-19 kW discharge woke the inverter
+# (threshold 0) where the legacy one stayed in standby.
+@example(
+    native=NativePlant(
+        Battery(
+            10.0,
+            5.0,
+            6.0,
+            0.875,
+            0.875,
+            reserve_soc=6.499041809550174e-06,
+            saturation_soc=0.97,
+            loss_charge_per_kw=0.004,
+            loss_discharge_per_kw=0.004,
+            meter_charge=0.99,
+            meter_discharge=1.01,
+        ),
+        PACIFIC,
+        standby_kw=0.042,
+        working_kw=0.049,
+        working_threshold_kw=0.0,
+    ),
+    day=[(3.125, 2.96875), (0.0, 0.0), (0.0, 0.0)],
+    soc=0.0,
+    stop_at=0,
+    first=T0,
+    connection="dc_bus",
+)
 def test_project_is_simulate(
     native: NativePlant,
     day: list[tuple[float, float]],

@@ -701,11 +701,13 @@ def project_paths(
         flow, level, stops = _settle(
             p, index, load + paths.standby_kw, paths.standby_kw, stored, stopped, kept, sessions
         )
-        if flow.moving > paths.working_threshold_kw and paths.working_kw > 0:
+        # Over the threshold by more than float noise: a battery a rounding above its
+        # floor moves ~1e-19 kW, which wakes no inverter (a threshold of 0 included).
+        if flow.moving > paths.working_threshold_kw + _EPS and paths.working_kw > 0:
             working, working_level, working_stops = _settle(
                 p, index, load + p.overhead, p.overhead, stored, stopped, kept, sessions
             )
-            if working.moving > paths.working_threshold_kw:
+            if working.moving > paths.working_threshold_kw + _EPS:
                 flow, level, stops = working, working_level, working_stops
         if stops:
             stopped_until = _export_end(paths, start)
