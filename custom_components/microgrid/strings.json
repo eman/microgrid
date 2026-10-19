@@ -1,0 +1,581 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Describe the plant",
+        "menu_options": {
+          "plant_paste": "Paste a plant file (plant/2)",
+          "plant_build": "Describe it step by step"
+        }
+      },
+      "plant_paste": {
+        "title": "Plant file",
+        "description": "The plant/2 file, as TOML. Without a timezone, Home Assistant's.",
+        "data": {
+          "plant_toml": "Plant file (plant/2, TOML)",
+          "name": "Name"
+        }
+      },
+      "plant_build": {
+        "title": "The plant",
+        "description": "Grid-charge windows, export windows, hold rules and meter signs are set in the plant file, from the options.",
+        "data": {
+          "name": "Name",
+          "pv": "PV",
+          "battery": "Battery",
+          "dc_load": "A load on the hybrid's DC bus"
+        }
+      },
+      "plant_battery": {
+        "title": "The battery",
+        "data": {
+          "capacity_kwh": "Usable capacity (kWh)",
+          "charge_kw": "Charge limit (kW)",
+          "discharge_kw": "Discharge limit (kW)",
+          "eta_charge": "Charge efficiency",
+          "eta_discharge": "Discharge efficiency",
+          "reserve_soc": "Reserve (0–1)",
+          "wear_charge_per_kwh": "Wear per kWh charged",
+          "wear_discharge_per_kwh": "Wear per kWh discharged",
+          "ac_rating_kw": "Inverter AC rating (kW)",
+          "standby_kw": "Inverter standby draw (kW)",
+          "working_kw": "Inverter working draw (kW)"
+        }
+      },
+      "plant_grid": {
+        "title": "The grid connection",
+        "data": {
+          "import_limit_kw": "Import limit (kW)",
+          "export_limit_kw": "Export limit (kW)"
+        }
+      },
+      "measured": {
+        "title": "What the plant measures",
+        "description": "The entities the plant's meters read, each in the sign its plant file states.",
+        "data": {
+          "soc": "Battery state of charge",
+          "house": "House load",
+          "dispatch": "Plant mode entity",
+          "modelled_modes": "Modes that run as modelled (comma separated)",
+          "dispatch_as_modelled": "The plant always runs as modelled",
+          "heartbeat": "Heartbeat entity",
+          "meter_pv": "PV meter",
+          "meter_grid": "Grid meter",
+          "meter_battery": "Battery meter",
+          "meter_dc_load": "DC-bus load meter",
+          "meter_consumption": "Consumption meter",
+          "soc_unit": "The SOC's unit, where its entity states none"
+        },
+        "data_description": {
+          "house": "The load the plant serves, as it meters it: the live value's.",
+          "dispatch": "An entity whose state is the plant's mode. Without one, set whether the plant always runs as modelled.",
+          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it."
+        }
+      },
+      "prices": {
+        "title": "Prices",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "prices_source": {
+        "title": "Prices",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      },
+      "pv_forecast": {
+        "title": "PV forecast",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "pv_forecast_source": {
+        "title": "PV forecast",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      },
+      "load_forecast": {
+        "title": "Load forecast",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "load_forecast_source": {
+        "title": "Load forecast",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      }
+    },
+    "error": {
+      "invalid": "The configuration has problems:\n{problems}",
+      "read_failed": "The source could not be read: {error}"
+    },
+    "abort": {}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Microgrid",
+        "menu_options": {
+          "plant": "Plant file",
+          "measured": "What the plant measures",
+          "prices": "Prices",
+          "pv_forecast": "PV forecast",
+          "load_forecast": "Load forecast",
+          "engine": "Engine settings"
+        }
+      },
+      "plant": {
+        "title": "Plant file",
+        "description": "The plant/2 file, as TOML.",
+        "data": {
+          "plant_toml": "Plant file (plant/2, TOML)"
+        }
+      },
+      "measured": {
+        "title": "What the plant measures",
+        "description": "The entities the plant's meters read, each in the sign its plant file states.",
+        "data": {
+          "soc": "Battery state of charge",
+          "house": "House load",
+          "dispatch": "Plant mode entity",
+          "modelled_modes": "Modes that run as modelled (comma separated)",
+          "dispatch_as_modelled": "The plant always runs as modelled",
+          "heartbeat": "Heartbeat entity",
+          "meter_pv": "PV meter",
+          "meter_grid": "Grid meter",
+          "meter_battery": "Battery meter",
+          "meter_dc_load": "DC-bus load meter",
+          "meter_consumption": "Consumption meter",
+          "soc_unit": "The SOC's unit, where its entity states none"
+        },
+        "data_description": {
+          "house": "The load the plant serves, as it meters it: the live value's.",
+          "dispatch": "An entity whose state is the plant's mode. Without one, set whether the plant always runs as modelled.",
+          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it."
+        }
+      },
+      "prices": {
+        "title": "Prices",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "prices_source": {
+        "title": "Prices",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      },
+      "pv_forecast": {
+        "title": "PV forecast",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "pv_forecast_source": {
+        "title": "PV forecast",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      },
+      "load_forecast": {
+        "title": "Load forecast",
+        "data": {
+          "from": "Reader"
+        }
+      },
+      "load_forecast_source": {
+        "title": "Load forecast",
+        "description": "The {reader} reader's settings.",
+        "data": {
+          "config_entry": "Config entry",
+          "area": "Price area",
+          "export": "Fixed export price per kWh",
+          "currency": "Currency",
+          "price": "Price entity",
+          "forecast": "Forecast entity",
+          "feed_in_price": "Feed-in price entity",
+          "feed_in_forecast": "Feed-in forecast entity",
+          "home": "Home",
+          "entities": "Entities",
+          "export_entities": "Export entities",
+          "entity": "Entity",
+          "current_rate": "Current rate",
+          "next_structure_time": "Next rate change",
+          "adjustment": "Adjustment",
+          "sell_rate": "Sell rate",
+          "attribute": "Attribute",
+          "start_key": "Start key",
+          "end_key": "End key",
+          "period_minutes": "Row length (minutes)",
+          "import_key": "Import price key",
+          "export_key": "Export price key",
+          "unit": "Unit",
+          "action": "Action (domain.action)",
+          "data": "Action data",
+          "rows": "Path to the rows (keys joined by dots)",
+          "value_key": "Value key",
+          "p10_key": "P10 key",
+          "p50_key": "P50 key",
+          "p90_key": "P90 key",
+          "last_polled": "Last polled entity",
+          "step_minutes": "Step (minutes)"
+        },
+        "data_description": {
+          "export": "For a source that publishes no export price: what an exported kWh earns.",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
+          "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
+          "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
+          "entities": "Today's first."
+        }
+      },
+      "engine": {
+        "title": "Engine settings",
+        "description": "Empty: the library's default.",
+        "data": {
+          "horizon_hours": "Horizon (hours)",
+          "slot_minutes": "Slot (minutes)",
+          "price_max_age_minutes": "Prices' longest age (minutes)",
+          "load_max_age_minutes": "Load forecast's longest age (minutes)",
+          "pv_max_age_hours": "PV forecast's longest age (hours)",
+          "smoothing_seconds": "Live smoothing (seconds)",
+          "battery_value": "A battery kWh's price"
+        }
+      }
+    },
+    "error": {
+      "invalid": "The configuration has problems:\n{problems}",
+      "read_failed": "The source could not be read: {error}"
+    }
+  },
+  "selector": {
+    "prices_reader": {
+      "options": {
+        "tariffkit": "TariffKit",
+        "nordpool": "Nord Pool",
+        "amber": "Amber Electric",
+        "tibber": "Tibber",
+        "octopus": "Octopus Energy",
+        "entsoe": "ENTSO-E",
+        "openei": "OpenEI",
+        "entity": "An entity's attribute",
+        "action": "An action's response"
+      }
+    },
+    "pv_forecast_reader": {
+      "options": {
+        "solcast": "Solcast",
+        "entity": "An entity's attribute",
+        "action": "An action's response",
+        "none": "None"
+      }
+    },
+    "load_forecast_reader": {
+      "options": {
+        "emhass": "EMHASS",
+        "predbat": "Predbat",
+        "entity": "An entity's attribute",
+        "action": "An action's response",
+        "none": "None"
+      }
+    },
+    "pv_coupling": {
+      "options": {
+        "none": "None",
+        "ac": "AC-coupled (its own inverters)",
+        "dc": "DC-coupled (on a hybrid's DC bus)"
+      }
+    },
+    "battery_connection": {
+      "options": {
+        "none": "None",
+        "ac": "On the AC bus (its own inverter)",
+        "dc_bus": "On a hybrid's DC bus"
+      }
+    },
+    "battery_value": {
+      "options": {
+        "stored_cost": "What its energy cost (stored cost)",
+        "replacement": "What will make it up (replacement)"
+      }
+    },
+    "soc_unit": {
+      "options": {
+        "percent": "Percent (0 to 100)",
+        "fraction": "A fraction (0 to 1)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "marginal_cost": {
+        "name": "Marginal cost"
+      },
+      "surplus": {
+        "name": "Surplus"
+      },
+      "regime": {
+        "name": "Regime",
+        "state": {
+          "export": "Export",
+          "curtail": "Curtail",
+          "battery": "Battery",
+          "import": "Import"
+        }
+      },
+      "pv_value": {
+        "name": "PV value"
+      },
+      "battery_value": {
+        "name": "Battery value"
+      },
+      "import_price": {
+        "name": "Import price"
+      },
+      "export_price": {
+        "name": "Export price"
+      },
+      "valuation": {
+        "name": "Valuation",
+        "state": {
+          "stored_value_v1": "Stored value",
+          "fallback_import": "Fallback to import",
+          "unpriced": "Unpriced"
+        }
+      },
+      "battery_floor": {
+        "name": "Battery floor"
+      }
+    },
+    "binary_sensor": {
+      "problem": {
+        "name": "Valuation problem"
+      }
+    }
+  },
+  "exceptions": {
+    "no_entry": {
+      "message": "No loaded microgrid entry."
+    },
+    "several_entries": {
+      "message": "Several microgrid entries are loaded: name one."
+    }
+  },
+  "issues": {
+    "source_failing": {
+      "title": "{entry}: {input} cannot be read",
+      "description": "The {input} source has failed several reads in a row: {error}\n\nThe valuation falls back while it does. Check the source's integration, or change the source in the integration's options."
+    }
+  },
+  "services": {
+    "get_valuation": {
+      "name": "Get valuation",
+      "description": "The published valuation (valuation/2), why and until when it holds, and the live value.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The microgrid entry; needed with more than one loaded."
+        }
+      }
+    }
+  }
+}

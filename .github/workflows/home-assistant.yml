@@ -1,0 +1,37 @@
+# The Home Assistant integration (custom_components/microgrid) as Home Assistant and HACS
+# check it: hassfest (the manifest, the strings, the services) and HACS's validation.
+name: Home Assistant
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: home-assistant-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned by commit: a tag can be moved.
+      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a  # 22.5.0
+        with:
+          category: integration
+          comment: false
+          # Topics list a repository in HACS's default store; a custom repository
+          # installs without them.
+          ignore: topics
+
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: home-assistant/actions/hassfest@58bff37c8947f690ace498be413a9b78d6f30f93  # main @ 2026-08-03

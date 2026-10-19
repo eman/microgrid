@@ -33,10 +33,10 @@ if [ "${1:-}" = "--docs" ]; then
 fi
 
 step "ruff check"
-uv run --locked ruff check src tests scripts
+uv run --locked ruff check src tests scripts custom_components
 
 step "ruff format --check"
-uv run --locked ruff format --check src tests scripts
+uv run --locked ruff format --check src tests scripts custom_components
 
 step "mypy (strict)"
 uv run --locked mypy

@@ -1,0 +1,7 @@
+get_valuation:
+  fields:
+    config_entry:
+      required: false
+      selector:
+        config_entry:
+          integration: microgrid
