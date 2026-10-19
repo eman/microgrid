@@ -19,7 +19,9 @@ Each user-visible change, under the release it ships in.
     *What a replay reads*; *The make-up rule*'s *What the rule does not decide* is
     *Grid charging*. R-5 is *Marginal*.
   - Nothing is "yours to decide", "yours to add" or "the client's to correct": each
-    says who does what.
+    says who does what. No "your": *Describe a plant*, *Run a first valuation*, *Write
+    a plant model*, *Get prices from live sources*, and the text speaks of a plant, the
+    meters, the recorder.
 
 ## [0.1.3] - 2026-10-18
 

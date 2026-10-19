@@ -1,8 +1,8 @@
-# Write your own plant model
+# Write a plant model
 
-The library's `Plant` covers the topologies `plant/2` describes. If your plant behaves
+The library's `Plant` covers the topologies `plant/2` describes. If a plant behaves
 in a way it cannot express (a dispatch rule of its own, a battery chemistry with a
-different conversion), you can bring your own plant model. The price rule asks only the
+different conversion), another plant model can stand in. The price rule asks only the
 questions of the port (`microgrid.engine.extend.PlantModel`), so any object that answers
 them can stand in for `Plant` ([The plant model](../concepts/plant-model.md)).
 
@@ -19,17 +19,17 @@ them can stand in for `Plant` ([The plant model](../concepts/plant-model.md)).
 | `pv_from_meters`, `read_meters`, `metered_flow` | its meters read as PV, as flows, and as a slot for the live value |
 
 `Storage.stored_per_kwh(source, flow)` is the one question the default price rule (the
-stored cost, `battery_value = "stored_cost"`) asks of your battery: stored kWh per kWh
+stored cost, `battery_value = "stored_cost"`) asks of the battery: stored kWh per kWh
 charged from `source` (`ChargeSource.PV`, `GRID` or `DC_PV`, in that source's own terms)
 by the path it takes, averaged over the slot's charge, or at the battery's charge limit
-without a slot. Answer it for your topology and your model has the stored cost; the
-engine runs the average forward along your projections (`ledger.project_average`).
+without a slot. Answer it for the topology and the model has the stored cost; the
+engine runs the average forward along its projections (`ledger.project_average`).
 
 **The battery's lots** are an input you keep. The library's ledger
-(`microgrid.engine.ledger.Ledger`) books metered charges through your `Storage`'s paths
-when you give it your storage and each slot as your model's (`step(..., slot=)`), and
-draws through a `plant.Battery` describing your battery's conversion; or keep the lots
-with your own bookkeeping and hand them in as `Lots`.
+(`microgrid.engine.ledger.Ledger`) books metered charges through the model's `Storage` paths
+when given that storage and each slot as the model's (`step(..., slot=)`), and draws
+through a `plant.Battery` describing the battery's conversion; or keep the lots with
+other bookkeeping and hand them in as `Lots`.
 
 The [API reference for `extend`](../reference/api/extend.md) documents every member,
 `SlotFlow`'s fields, and `SlotDispatch`, the dispatch's bookkeeping the price rule reads
@@ -74,7 +74,7 @@ class MyPlant:
         held_at_start: bool | None = None,
         stop: Callable[[int, SlotFlow], bool] | None = None,
     ) -> tuple[SlotFlow, ...]:
-        # Your dispatch goes here.
+        # The dispatch goes here.
         return self._base.project(
             starts, durations, pv_kw, load_kw, soc,
             dc_load_kw=dc_load_kw, held_at_start=held_at_start, stop=stop,
@@ -172,8 +172,8 @@ forecast that runs high: correct the input, not the plant.
 ## Then check it against the meters
 
 The contract says the model is self-consistent. Whether it is *right* is a question
-for your plant's meters. `microgrid check-plant` runs the library's `Plant`; for your
-own model, call `microgrid.engine.analysis.ground_truth.project_against_meters` with a
+for the plant's meters. `microgrid check-plant` runs the library's `Plant`; for another
+model, call `microgrid.engine.analysis.ground_truth.project_against_meters` with a
 `project` function that runs it (its one call into a plant model, `Projector`), as
 `microgrid.cli.check_plant` does for `Plant` ([Check a plant model against its
 meters](check-plant.md)).

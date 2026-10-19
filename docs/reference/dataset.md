@@ -157,4 +157,4 @@ would be a new format.
 `pv_forecast.<array>` joins the entry name and the array's name with a dot, for a plant
 whose arrays have both couplings. `plant/2`'s default PV meters for such a plant are
 named `pv:<array>`, with a colon, which a dataset name cannot hold: name those meters
-yourself in `plant/2` (`[[meters]]`, for example `pv_roof`) to record them in a dataset.
+in `plant/2` (`[[meters]]`, for example `pv_roof`) to record them in a dataset.

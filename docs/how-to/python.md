@@ -5,7 +5,7 @@ Build the configuration once, hand the engine series, and read what comes back.
 ```mermaid
 flowchart LR
     setup["plant/2, engine/2<br/>(plain data)"] --> cfg["EngineConfig"]
-    data["your sources"] --> inputs["Inputs<br/>(series)"]
+    data["the sources"] --> inputs["Inputs<br/>(series)"]
     cfg --> engine["Engine"]
     inputs --> engine
     engine -- "value(inputs, at=t)" --> v["Valuation"]
@@ -39,7 +39,7 @@ plant = Plant(PlantConfig.from_mapping({
 engine = Engine(EngineConfig.from_mapping({"schema": "engine/2"}, plant=plant))
 ```
 
-- `PlantConfig.from_mapping` takes `plant/2` as plain data: parse your TOML, JSON or
+- `PlantConfig.from_mapping` takes `plant/2` as plain data: parse TOML, JSON or
   YAML and pass the result. The zone is a `ZoneInfo` you build.
 - `EngineConfig.from_mapping` takes `engine/2`; `{"schema": "engine/2"}` is every
   default. Both raise an error naming every problem with its path.
@@ -74,7 +74,7 @@ def pv_kw(t: datetime) -> float:                       # a stand-in for a real f
 
 
 # What the battery holds: 3.5 stored kWh of yesterday's solar, charged while export
-# earned 0.05 (cost per AC kWh charged; 0.95 stored per AC kWh). Your ledger gives this.
+# earned 0.05 (cost per AC kWh charged; 0.95 stored per AC kWh). A ledger gives this.
 solar = Amount(3.5, 3.5 / 0.95 * 0.05)
 lots = Lots(now, {Source.PV: solar}, pool=solar)
 
@@ -91,7 +91,7 @@ inputs = Inputs(
 )
 ```
 
-- **Every time is UTC.** Convert at your edge; the engine refuses anything else.
+- **Every time is UTC.** Convert at the edge; the engine refuses anything else.
 - **Values are in the engine's units**: kW, an SOC as a fraction, prices per kWh.
   `microgrid.engine.units.normalise` converts a measured series from its source's unit
   (`units.normalise(soc_percent, "fraction")`); convert forecast values as you build
@@ -102,7 +102,7 @@ inputs = Inputs(
   past moments later: the engine reads each input as it stood at the moment you ask
   about.
 - **Give the battery's lots** (`Inputs.lots`): a series of `Lots`, each in force from
-  when your ledger (`microgrid.engine.ledger`) booked it
+  when the ledger (`microgrid.engine.ledger`) booked it
   ([Inputs](../concepts/inputs.md#the-batterys-lots)). Here the battery holds solar
   charged at 0.05, so a kWh from it costs 0.05 through its losses and wear, 0.0754.
   Without lots, all it holds is priced as bought at the import (0.20), the valuation
@@ -126,7 +126,7 @@ Check `valuation.kind` before using the slots: `fallback_import` means an input 
 not be used (the slots are then at the import price, the causes in `degraded`), and
 `unpriced` means there are no slots at all ([Causes and kinds](../reference/causes.md)).
 
-`engine.value` reads nothing received after `at`. Calling it with a past `at` over your
+`engine.value` reads nothing received after `at`. Calling it with a past `at` over the
 recorded inputs is a replay that cannot look ahead.
 
 ## 4. As plain data
@@ -182,7 +182,7 @@ stored_value_v1 0.07540166204986153 0.0 battery ()
   each in its configured sign: here the battery reads -0.5 kW, discharging.
 - `valid_until` is required with a valuation: past it, the live value falls back and
   names `issue`.
-- Keep your readings for `engine.config.smoothing_window` (50 minutes by default)
+- Keep the readings for `engine.config.smoothing_window` (50 minutes by default)
   before the moment, and the one in force then.
 - A client with its own reasons to distrust a value (a dropped connection) passes them
   as `external=[...]`.

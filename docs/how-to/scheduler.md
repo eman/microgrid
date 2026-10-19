@@ -27,7 +27,7 @@ step.
 
 Run a 2 kW load for 3 hours, some time in the next 24 hours, from 07:00 on Thursday
 2026-10-22, on the example dataset. Value once, then cost every 3-hour window.
-`offline.value` gives the engine the battery's lots from the dataset's meters; your own
+`offline.value` gives the engine the battery's lots from the dataset's meters; a live
 client gives its ledger's (`Inputs.lots`). Without them the valuation names
 `battery_lots` and prices what the battery holds as bought at the import, so a battery
 kWh looks dearer than it may be ([The battery's lots](../concepts/inputs.md#the-batterys-lots)).
@@ -121,7 +121,7 @@ before comparing.
 ## When there are no prices
 
 A valuation of kind `unpriced` has no slots: there was no price for the slot under way,
-so there is nothing to schedule on. Keep the last plan, or fall back to your own rule
+so there is nothing to schedule on. Keep the last plan, or fall back to a fixed rule
 (run at a fixed hour). A `fallback_import` valuation has slots, all at the import
 price: schedule on that if you must run, knowing it says nothing about the sun or the
 battery.
@@ -133,7 +133,7 @@ The supply stack holds within one slot. A 3-hour run is many slots, and a large 
 change what the plant does later: it can make the battery run empty sooner, or fill
 later, and so move the event that prices every slot before it. So once you commit a
 run, add it to the load forecast and value again. The engine prices a load in the load
-forecast as the house's own, so the next decision sees the plant with your run in it.
+forecast as the house's own, so the next decision sees the plant with the run in it.
 
 To add it, append a new issue to the load forecast series: the last forecast you
 received, with the run's kW added to the slots it covers, issued and received now. The
@@ -150,6 +150,6 @@ it is the same price for the slot from now, made from the meters.
 ## How far ahead to trust it
 
 A price 2 hours ahead rests on a forecast that is 2 hours old by then; one 40 hours
-ahead, on one much older. [Replay](replay.md) your own record: it scores the marginal
+ahead, on one much older. [Replay](replay.md) the plant's record: it scores the marginal
 cost, the surplus and the regime by hours ahead (0-1 h, 1-3 h, 3-12 h, 12-48 h), which
-says how far ahead your plant's prices hold.
+says how far ahead the plant's prices hold.

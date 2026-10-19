@@ -7,7 +7,7 @@ model.
 
 ## Project a day
 
-A plant is its `plant/2` description ([Describe your plant](describe-plant.md)), read
+A plant is its `plant/2` description ([Describe a plant](describe-plant.md)), read
 by `PlantConfig.from_mapping` or taken from `microgrid.plant.examples`. `Plant` is
 the model of it; `Plant.project` runs it over the slots you give it, from a state of
 charge, with the PV and the load in each:
@@ -64,8 +64,8 @@ charge at the slot's start and end. `surplus` and `regimes` read the PV left ove
 each slot's regime from a projection. Times are UTC throughout, the plant's own time
 zone only placing its windows.
 
-## Your own plant model
+## Another plant model
 
 A model of a plant this one does not describe implements the port,
-`microgrid.plant.port.PlantModel` ([Write your own plant model](own-plant-model.md)); the
+`microgrid.plant.port.PlantModel` ([Write a plant model](own-plant-model.md)); the
 price model reads any such model the same way.

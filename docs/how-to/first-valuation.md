@@ -1,4 +1,4 @@
-# Run your first valuation
+# Run a first valuation
 
 The repository ships an example dataset: one synthetic week of an example plant, so no
 hardware or accounts are needed.
@@ -112,5 +112,5 @@ Each line is the valuation run again from the meters at that moment
 ## Next
 
 - [Use the library from Python](python.md), to get every output as data.
-- [Build a dataset](build-dataset.md) from your own plant's records.
-- [Describe your plant](describe-plant.md) in `plant/2`.
+- [Build a dataset](build-dataset.md) from a plant's records.
+- [Describe a plant](describe-plant.md) in `plant/2`.

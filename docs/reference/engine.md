@@ -57,9 +57,9 @@ to the plant model's own flows: the live value reads them to tell whether the ho
 importing now, and the analysis functions take them as an argument (`microgrid replay`
 and `check-plant` use the defaults). Each is 0 or more; `soc` is under 1.
 
-**The defaults were measured on one plant's 10-minute meter means.** Yours may report
-differently. To set your own, replay a period and run `check-plant`
-([Tune the engine](../how-to/tune-engine.md#your-meters-are-noisier-or-cleaner)): where
+**The defaults were measured on one plant's 10-minute meter means.** Another plant's
+meters may report differently. To set them for it, replay a period and run `check-plant`
+([Tune the engine](../how-to/tune-engine.md#noisier-or-cleaner-meters)): where
 the scoring shows events the plant did not have, raise that floor.
 
 | Key | Default | Below it |

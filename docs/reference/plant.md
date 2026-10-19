@@ -3,7 +3,7 @@
 A plant's topology and parameters as plain data: what `PlantConfig.from_mapping`
 reads and `PlantConfig.to_mapping` writes back exactly. The `microgrid` command reads it
 from TOML (`plant.toml`); a Python client may build the mapping from anything.
-[Describe your plant](../how-to/describe-plant.md) shows how to
+[Describe a plant](../how-to/describe-plant.md) shows how to
 write one for each topology.
 
 **Validation names every problem with its path** (`battery.capacity_kwh: must be
@@ -179,7 +179,7 @@ every array's PV, each or together.
 
 **The default set**, without `meters`: `pv` for every array together (with arrays of
 both couplings, one per array named `pv:<array>`, which a dataset cannot name:
-[name them yourself](dataset.md#the-names) to record them), `grid`, `battery` at its DC
+[name them](dataset.md#the-names) to record them), `grid`, `battery` at its DC
 side where there is a battery, and `dc_load` where a load is on the DC bus, each with
 sign 1.
 

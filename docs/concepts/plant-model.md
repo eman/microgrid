@@ -53,7 +53,7 @@ That dispatch is **self-consumption with PV charging first**, slot by slot:
 The configuration adds what a plant does beyond that: grid-charge windows, battery
 export windows, holding the battery through a DC-bus load's session, the grid's import
 and export limits, inverter ratings. [`plant/2`](../reference/plant.md) lists them, and
-[Describe your plant](../how-to/describe-plant.md) shows each topology.
+[Describe a plant](../how-to/describe-plant.md) shows each topology.
 
 ## It models the plant's own rules
 
@@ -71,8 +71,7 @@ cannot rest on the model and falls back to the import price.
 A plant model is only worth pricing with if it does what the plant does:
 [check it against the meters](../how-to/check-plant.md).
 
-## Your own model
+## Another plant model
 
 Any object that keeps the `PlantModel` protocol can stand in for `Plant`, and
-`microgrid.engine.testing.assert_plant_model_contract` checks one. See [Write your own
-plant model](../how-to/own-plant-model.md).
+`microgrid.engine.testing.assert_plant_model_contract` checks one. See [Write a plant model](../how-to/own-plant-model.md).

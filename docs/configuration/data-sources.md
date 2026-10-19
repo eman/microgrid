@@ -7,7 +7,7 @@ sources` and `microgrid fetch` ([the commands](#the-commands)). Each forecast in
 tool. Measured values (`[measured]`) are read from Home Assistant only;
 without it, they come from a [dataset](../reference/dataset.md) you build. The readers
 need the `sources` extra ([Install](../install.md#the-sources-extra)).
-[Get prices from your own sources](../how-to/own-sources.md) builds a file step by step.
+[Get prices from live sources](../how-to/own-sources.md) builds a file step by step.
 
 ```toml
 schema = "sources/1"
@@ -99,7 +99,7 @@ faults.
 
 **A provider that does not publish rows like these cannot be read as an entity**, for
 example one whose entities hold only daily energy totals, or only the current power.
-Check what your integration's entity holds (its attributes, in Home Assistant's
+Check what the integration's entity holds (its attributes, in Home Assistant's
 developer tools) before configuring it.
 
 ## Presets for named tools
@@ -247,7 +247,7 @@ shorter.
 
 - **Measured values from anything but Home Assistant.** `[measured]` and `fetch` read
   Home Assistant only. Without it, write the measured series into a
-  [dataset](../how-to/build-dataset.md) yourself.
+  [dataset](../how-to/build-dataset.md) directly.
 - **A recorder other than Home Assistant's for `fetch`**, such as InfluxDB.
 - **Forecast history.** `fetch` writes what was measured, not forecasts: Home Assistant
   does not keep what a forecaster published in a form that says when it was known. A

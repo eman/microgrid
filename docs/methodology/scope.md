@@ -30,8 +30,8 @@ client hands the series over from a [dataset](../reference/dataset.md) or Python
   is not running [as modelled](../concepts/inputs.md#dispatch-as-modelled), and every
   valuation falls back to the import price. To price such a plant, run it in a mode the
   model describes, or [write a plant model](../how-to/own-plant-model.md) that projects
-  what your controller will do.
+  what the controller will do.
 - **Topologies checked against real meters: one.** The plant model has been checked
   against one real plant's meters: AC-coupled PV with a battery on a hybrid's DC bus and
   a load on that bus. Every other topology `plant/2` accepts runs through the same
-  dispatch but has not yet been checked; [check yours](../how-to/check-plant.md).
+  dispatch but has not yet been checked; [check a plant](../how-to/check-plant.md).

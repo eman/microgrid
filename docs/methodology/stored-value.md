@@ -186,7 +186,7 @@ battery above:
 | empty, inside a 0.45 peak | 0.45 | 0.4085 | 0.3681 | 0.45 |
 
 It answers a different question: what the site will pay to put the kWh back, if the
-plant's future goes as projected. Choose it when that is the question your scheduler
+plant's future goes as projected. Choose it when that is the question the scheduler
 asks ([Tune the engine](../how-to/tune-engine.md#you-want-a-kwh-priced-by-its-replacement)).
 
 ## Values by source
@@ -237,5 +237,5 @@ scheduler](../how-to/scheduler.md) prices a load across the stack.
 ## Setting the parameters
 
 The efficiencies and the loss growth come from `plant/2`; `microgrid fit-battery` fits
-them from your meters. The wear defaults to 0, which prices cycling as free; set it
-([Describe your plant](../how-to/describe-plant.md#the-battery-parameters)).
+them from the meters. The wear defaults to 0, which prices cycling as free; set it
+([Describe a plant](../how-to/describe-plant.md#the-battery-parameters)).

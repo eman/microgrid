@@ -44,13 +44,12 @@ defined in [Outputs](concepts/outputs.md).
 
 ## Where to start
 
-- **Try it.** [Install](install.md), then [run your first
-  valuation](how-to/first-valuation.md) on the example dataset: one synthetic week of an
+- **Try it.** [Install](install.md), then [run a first valuation](how-to/first-valuation.md) on the example dataset: one synthetic week of an
   example plant, no hardware needed.
 - **Understand it.** [The methodology](methodology/index.md), from "why one more kWh"
   to what a battery kWh costs and the PV scenarios.
-- **Use it on your plant.** [Describe your plant](how-to/describe-plant.md), [build a
-  dataset](how-to/build-dataset.md) from your own records, or [call it from
+- **Use it on a plant.** [Describe a plant](how-to/describe-plant.md), [build a
+  dataset](how-to/build-dataset.md) from a plant's records, or [call it from
   Python](how-to/python.md).
 - **Look something up.** The [reference](reference/index.md): the formats, the
   `microgrid` command and the API.

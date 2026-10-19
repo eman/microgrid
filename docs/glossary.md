@@ -36,7 +36,7 @@ Whether the plant is running the dispatch its model describes. Defined in
 Two ways to describe a battery on a [DC bus](#dc-bus). **Folded**: one conversion from
 the AC side to stored energy, metered at the DC bus. **Split**: the battery's own step
 from the DC bus to stored energy, with the hybrid's conversion from the DC bus to AC
-separate. See [Describe your plant](how-to/describe-plant.md#a-battery-on-a-hybrids-dc-bus).
+separate. See [Describe a plant](how-to/describe-plant.md#a-battery-on-a-hybrids-dc-bus).
 
 ## Grid-charge window
 
