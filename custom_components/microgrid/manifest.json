@@ -1,0 +1,19 @@
+{
+  "domain": "microgrid",
+  "name": "Microgrid",
+  "after_dependencies": [
+    "recorder"
+  ],
+  "codeowners": [
+    "@eman"
+  ],
+  "config_flow": true,
+  "documentation": "https://eman.github.io/microgrid/how-to/home-assistant/",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/eman/microgrid/issues",
+  "requirements": [
+    "microgrid[sources]==0.1.4.dev0"
+  ],
+  "version": "0.1.4.dev0"
+}

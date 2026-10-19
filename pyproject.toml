@@ -55,6 +55,9 @@ dev = [
     { include-group = "docs" },
     # The sources extra, so the gate covers the readers.
     "microgrid[sources]",
+    # The Home Assistant integration's tests (custom_components/microgrid).
+    # Home Assistant 2026.10 needs Python 3.14.2.
+    "pytest-homeassistant-custom-component>=0.13.373; python_full_version >= '3.14.2'",
 ]
 
 [project.scripts]
@@ -86,11 +89,13 @@ include = [
     "/LICENSE",
     "/pyproject.toml",
 ]
+# The Home Assistant integration's tests need the integration, which the sdist leaves out.
+exclude = ["/tests/ha", "/tests/ha_fixtures.py", "/tests/test_manifest.py"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-src = ["src", "tests"]
+src = ["src", "tests", "custom_components"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "ANN", "C4", "RET", "SIM", "PTH", "RUF"]
@@ -98,18 +103,29 @@ ignore = ["ANN401"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN"]
+# The Home Assistant integration follows Home Assistant's conventions.
+"custom_components/**" = ["A002", "N805"]
 
 [tool.mypy]
 strict = true
 warn_unreachable = true
 python_version = "3.14"
 plugins = ["pydantic.mypy"]
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "custom_components/microgrid"]
+mypy_path = ["$MYPY_CONFIG_FILE_DIR/src", "$MYPY_CONFIG_FILE_DIR/tests", "$MYPY_CONFIG_FILE_DIR"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+# Home Assistant's test harness ships no type information.
+module = ["pytest_homeassistant_custom_component.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The repository (custom_components) and the tests' shared modules.
+pythonpath = [".", "tests"]
 addopts = "-q --strict-markers"
-asyncio_mode = "strict"
+asyncio_mode = "auto"
 markers = [
     "live: needs the site's HA, EMQX or InfluxDB; never run by the local gate",
 ]

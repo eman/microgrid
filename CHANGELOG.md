@@ -6,6 +6,15 @@ Each user-visible change, under the release it ships in.
 
 ### Added
 
+- A Home Assistant integration (`custom_components/microgrid`, installed with HACS from
+  a release's `microgrid.zip`): the plant (`plant/2`, pasted or built step by step),
+  its measured entities and its sources configured in Home Assistant, each checked by
+  the library and each source read once before it is kept. It publishes the valuation
+  (its slots in an unrecorded attribute), the live value (marginal cost, surplus,
+  regime, values by source), the prices in force and the battery's floor as entities,
+  a problem sensor, and `microgrid.get_valuation` (`valuation/2`, the live value); runs
+  the battery's ledger over the recorder's history; raises a repair issue for a source
+  that keeps failing. *Run it in Home Assistant* documents it.
 - Price readers for more Home Assistant integrations, in `sources/1`: Nord Pool
   (`from = "nordpool"`), Amber Electric (`amber`), Tibber (`tibber`), Octopus Energy
   (`octopus`), ENTSO-E (`entsoe`) and OpenEI (`openei`), each reading what the

@@ -147,6 +147,7 @@ nav:
       - Use the library from Python: how-to/python.md
       - Use the prices in a scheduler: how-to/scheduler.md
       - Run it continuously: how-to/run-continuously.md
+      - Run it in Home Assistant: how-to/home-assistant.md
       - Replay and score a period: how-to/replay.md
       - Check a plant model against its meters: how-to/check-plant.md
       - Read the battery's lots: how-to/ledger.md

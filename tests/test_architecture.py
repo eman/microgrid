@@ -25,8 +25,16 @@ from architecture import (
     cli_surface,
 )
 
-#: The library's clients in this project: its CLI, its tests of the CLI, its scripts.
-LIBRARY_CLIENTS = ("src/microgrid/cli", "tests/cli", "scripts")
+#: The CLI's own clients: the Home Assistant integration and its tests, which import its
+#: declared surface (the sdist leaves them out).
+CLI_CLIENTS = (
+    ("custom_components/microgrid", "tests/ha")
+    if (REPO / "custom_components" / "microgrid").is_dir()
+    else ()
+)
+#: The library's clients in this project: its CLI, its tests of the CLI, its scripts,
+#: and the integration and its tests.
+LIBRARY_CLIENTS = ("src/microgrid/cli", "tests/cli", "scripts", *CLI_CLIENTS)
 
 
 def test_the_models_do_no_io() -> None:
@@ -144,6 +152,17 @@ def test_the_cli_uses_the_engines_public_names_alone() -> None:
         for path in files:
             tree = ast.parse(path.read_text(encoding="utf-8"))
             uses = _private_uses(tree) + _tier_offences(tree)
+            offenders += [f"{path.relative_to(REPO)}: {use}" for use in uses]
+    assert offenders == []
+
+
+def test_the_integration_uses_the_clis_declared_surface_alone() -> None:
+    """The Home Assistant integration and its tests import from the CLI only what each
+    module declares public (its ``__all__``)."""
+    offenders = []
+    for root in CLI_CLIENTS:
+        for path in sorted((REPO / root).rglob("*.py")):
+            uses = _cli_offences(ast.parse(path.read_text(encoding="utf-8")))
             offenders += [f"{path.relative_to(REPO)}: {use}" for use in uses]
     assert offenders == []
 

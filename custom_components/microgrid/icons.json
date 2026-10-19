@@ -1,0 +1,18 @@
+{
+  "entity": {
+    "sensor": {
+      "marginal_cost": { "default": "mdi:cash-clock" },
+      "surplus": { "default": "mdi:solar-power-variant" },
+      "regime": { "default": "mdi:transmission-tower-export" },
+      "pv_value": { "default": "mdi:solar-power" },
+      "battery_value": { "default": "mdi:battery-charging" },
+      "import_price": { "default": "mdi:transmission-tower-import" },
+      "export_price": { "default": "mdi:transmission-tower-export" },
+      "valuation": { "default": "mdi:chart-timeline-variant" },
+      "battery_floor": { "default": "mdi:battery-arrow-down" }
+    }
+  },
+  "services": {
+    "get_valuation": { "service": "mdi:chart-timeline-variant" }
+  }
+}

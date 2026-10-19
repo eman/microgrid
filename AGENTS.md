@@ -8,8 +8,9 @@ A library that models a solar + battery plant and produces **marginal energy
 prices**: what one more kWh costs, slot by slot, and the value of energy by source
 (`docs/methodology/requirements.md`). That is the product: the plant model (`microgrid.plant`, usable on
 its own), the price model (`microgrid.engine`), and their command, `microgrid`
-(`microgrid.cli`), which runs them on a dataset or on a site's live sources. How the
-prices are made is in `docs/methodology/`.
+(`microgrid.cli`), which runs them on a dataset or on a site's live sources. A Home
+Assistant integration (`custom_components/microgrid`) runs them inside Home Assistant.
+How the prices are made is in `docs/methodology/`.
 
 A local checkout may hold development records that are never published and that git
 ignores (`docs/adr/`, `docs/research/`, `docs/INDEX.md`). Read them where they exist;
@@ -23,8 +24,10 @@ never cite them in a tracked file.
   lots and their cost split, the series and units inputs arrive in, and the
   model-facing checks against the meters. Each module states which it serves. Its
   command (`microgrid.cli`) runs these on a dataset (`dataset/1`), or on the live
-  sources a `sources/1` file names, read by the library's readers. It holds no billing,
-  earnings, control or load forecasting (R-9).
+  sources a `sources/1` file names, read by the library's readers; the Home Assistant
+  integration runs them inside Home Assistant on the live sources it is configured
+  with, read by the same readers. None of it holds billing, earnings, control or load
+  forecasting (R-9).
 - **No control.** Nothing here controls a device.
 - **Not a tariff engine** (R-8). The library takes prices as an input series and
   computes no tariff.
@@ -42,8 +45,8 @@ never cite them in a tracked file.
   - the CLI (`microgrid.cli`) reads files and the network and uses only the plant's and
     engine's public names.
 
-  Clients import the library's public tiers and the CLI's declared surface (each
-  module's `__all__`). No I/O in the models is the one rule; the architecture test
+  Clients, the Home Assistant integration among them, import the library's public
+  tiers and the CLI's declared surface (each module's `__all__`). No I/O in the models is the one rule; the architecture test
   (`tests/test_architecture.py`) enforces it.
 - **Nothing site-specific in code.** Plant parameters live in the plant's file
   (`plant/2`), a site's sources in its `sources/1` file; secrets and hosts never in a
@@ -75,6 +78,15 @@ never cite them in a tracked file.
   needing a live site is marked `live`.
 - `CHANGELOG.md` gets an entry under `[Unreleased]` for each user-visible change.
 
+## The Home Assistant integration
+
+`custom_components/microgrid` beside `src/`, as one repository holds both (HACS installs
+it from a release's `microgrid.zip`). Home Assistant's conventions hold in that
+directory; its tests (`tests/ha`) run in the gate on Home Assistant's own test harness.
+Its manifest pins this version of the library (`microgrid[sources]==X.Y.Z`), so the
+integration installs only once that version is on PyPI; `tests/test_manifest.py` holds
+the manifest to `pyproject.toml`'s version.
+
 ## CI
 
 GitHub Actions runs `scripts/ci_local.sh` on every push to `main` and every
@@ -93,15 +105,18 @@ Versions follow `docs/reference/versions.md`: semantic versioning, the version i
 release's, with `.dev0`. To release `X.Y.Z`:
 
 1. In one change on `main`: `CHANGELOG.md`'s `[Unreleased]` becomes `[X.Y.Z] - YYYY-MM-DD`
-   (a new empty `[Unreleased]` above it), and `pyproject.toml`'s version becomes `X.Y.Z`
-   (`uv version X.Y.Z`, which updates `uv.lock`). The gate passes.
+   (a new empty `[Unreleased]` above it), `pyproject.toml`'s version becomes `X.Y.Z`
+   (`uv version X.Y.Z`, which updates `uv.lock`), and so do the integration's manifest's
+   `version` and requirement (`custom_components/microgrid/manifest.json`). The gate
+   passes.
 2. Tag that commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the
    tag is the version, runs the gate, builds, publishes to PyPI by trusted publishing
    (the `pypi` environment), makes the GitHub release, its notes the changelog's
-   section, and publishes the documentation site to GitHub Pages (the `github-pages`
-   environment): one site, the latest release's.
-3. Then `pyproject.toml`'s version becomes the next one's `.dev0` (`uv version
-   X.Y.(Z+1).dev0`).
+   section, with the integration's `microgrid.zip` for HACS, and publishes the
+   documentation site to GitHub Pages (the `github-pages` environment): one site, the
+   latest release's.
+3. Then `pyproject.toml`'s version, and the manifest's, become the next one's `.dev0`
+   (`uv version X.Y.(Z+1).dev0`).
 
 A version on PyPI is never replaced: a mistake is fixed by the next release.
 

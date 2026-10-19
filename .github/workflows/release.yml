@@ -29,12 +29,24 @@ jobs:
             echo "tag $GITHUB_REF_NAME, but pyproject.toml says $version" >&2
             exit 1
           fi
+      # The gate holds the integration's manifest to the version (tests/test_manifest.py).
       - run: scripts/ci_local.sh
       - run: uv build
+      # HACS installs the integration from the release's microgrid.zip (hacs.json): the
+      # integration's files at the archive's root.
+      - name: The integration for HACS
+        run: |
+          mkdir hacs
+          cd custom_components/microgrid
+          zip -r ../../hacs/microgrid.zip . -x '__pycache__/*'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: dist
           path: dist/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: hacs
+          path: hacs/
 
   publish:
     needs: build
@@ -65,6 +77,10 @@ jobs:
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: hacs
+          path: hacs/
       - name: The release, its notes the changelog's section
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,7 +91,8 @@ jobs:
             on && /^## \[/ { exit }
             on { print }
           ' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* hacs/microgrid.zip \
+            --title "$GITHUB_REF_NAME" --notes-file notes.md
 
   # The documentation site (GitHub Pages, https://eman.github.io/microgrid/): one site,
   # the latest release's, published once PyPI has the version it describes. The

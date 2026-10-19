@@ -23,6 +23,8 @@
 - [Use the prices in a scheduler](scheduler.md): which output answers which question,
   and a worked decision.
 - [Run it continuously](run-continuously.md): record inputs, value, serve the live value.
+- [Run it in Home Assistant](home-assistant.md): the integration, its entities and
+  its action.
 - [Write a plant model](own-plant-model.md), and check it keeps the contract.
 
 **Checking the models**
