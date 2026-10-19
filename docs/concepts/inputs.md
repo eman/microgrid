@@ -49,7 +49,7 @@ What one more kWh imported costs and one more exported earns, per interval: `Pri
 p_export)`. Either may be negative, and the rule carries the sign through: with a
 negative export price, a kWh that would have spilled earns money when a load uses it,
 and its price is negative. Any shape works: a flat rate, time-of-use bands, a
-dynamic price that changes every interval. The currency is yours ([Units](units.md)).
+dynamic price that changes every interval. Prices may be in any currency ([Units](units.md)).
 
 ## PV forecast
 

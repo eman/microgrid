@@ -18,6 +18,8 @@ Each user-visible change, under the release it ships in.
   - *The plant model*'s section is *It models the plant's own rules*; *Replay*'s is
     *What a replay reads*; *The make-up rule*'s *What the rule does not decide* is
     *Grid charging*. R-5 is *Marginal*.
+  - Nothing is "yours to decide", "yours to add" or "the client's to correct": each
+    says who does what.
 
 ## [0.1.3] - 2026-10-18
 

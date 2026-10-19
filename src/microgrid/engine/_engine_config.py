@@ -3,8 +3,8 @@
 Every field is optional and defaults to today's value, so ``{"schema": "engine/2"}`` is
 the engine as it runs. ``engine/1`` is read as it was: the same keys, but without
 ``price_max_age_minutes`` prices have no age limit (``engine/2`` defaults it: a file
-read differently is a new version). What the plant is comes apart (``plant/2``); where
-the data comes from is the client's. Durations are named by their unit
+read differently is a new version). What the plant is comes apart (``plant/2``).
+Durations are named by their unit
 (``slot_minutes``, ``horizon_hours``, ``load_max_age_minutes``, ``smoothing_seconds``),
 power in kW, the SOC as 0-1.
 """

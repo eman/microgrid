@@ -33,7 +33,7 @@ time, leave `end_key` out and set `period_minutes`. A PV forecast names
 
 **Check the entity first.** Look at its attributes (Home Assistant's developer tools
 show them). An integration whose entities hold only daily energy totals, or only the
-power now, has no rows to read; whether yours does is for you to check.
+power now, has no rows to read.
 
 ## Presets for named tools
 

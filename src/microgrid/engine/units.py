@@ -7,10 +7,9 @@ unit with its series (:attr:`microgrid.engine.series.Series.unit`), and
 :func:`normalise` converts it once, at the edge, so no client assumes a unit.
 
 A unit this module does not know raises :class:`UnitError`: a reading in an unknown
-unit is not used, rather than used wrongly by a factor of a thousand. A currency is
-never converted: a price's currency is the client's, and passes through as written,
-so a client must give prices in the currency it means (``¢/kWh`` passes as a
-currency named ``¢``: the numbers stay in cents).
+unit is not used. A currency is never converted: a price passes through in the
+currency it was written in, so a client must give prices in the currency it means
+(``¢/kWh`` passes as a currency named ``¢``: the numbers stay in cents).
 """
 
 from __future__ import annotations
