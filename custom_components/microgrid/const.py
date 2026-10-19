@@ -25,8 +25,8 @@ DECIDE_EVERY: Final = timedelta(minutes=1)
 LIVE_EVERY: Final = timedelta(seconds=30)
 #: Load forecast issues kept: the engine takes each slot from the newest fresh one.
 LOAD_ISSUES: Final = 12
-#: Reads failing this many times in a row raise a repair issue.
-FAILURES_FOR_ISSUE: Final = 6
+#: A source failing this long, every read since, raises a repair issue.
+FAILING_FOR_ISSUE: Final = timedelta(minutes=30)
 
 SERVICE_GET_VALUATION: Final = "get_valuation"
 ATTR_CONFIG_ENTRY: Final = "config_entry"

@@ -500,7 +500,7 @@
     },
     "soc_unit": {
       "options": {
-        "%": "Percent (0 to 100)",
+        "percent": "Percent (0 to 100)",
         "fraction": "A fraction (0 to 1)"
       }
     }

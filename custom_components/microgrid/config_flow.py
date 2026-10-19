@@ -373,6 +373,8 @@ _GRID_SCHEMA = vol.Schema(
 
 #: The SOC's unit where its entity states none: a fraction (0 to 1), ``soc_unit = ""``.
 _SOC_FRACTION = "fraction"
+#: The SOC in percent where its entity states no unit, ``soc_unit = "%"`` (the default).
+_SOC_PERCENT = "percent"
 
 
 def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
@@ -394,10 +396,12 @@ def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
         schema[optional("soc", current.get("soc"))] = power
         schema[
             vol.Required(
-                "soc_unit", default=_SOC_FRACTION if current.get("soc_unit") == "" else "%"
+                "soc_unit", default=_SOC_FRACTION if current.get("soc_unit") == "" else _SOC_PERCENT
             )
         ] = selector.SelectSelector(
-            selector.SelectSelectorConfig(options=["%", _SOC_FRACTION], translation_key="soc_unit")
+            selector.SelectSelectorConfig(
+                options=[_SOC_PERCENT, _SOC_FRACTION], translation_key="soc_unit"
+            )
         )
     schema[optional("house", current.get("house"))] = power
     if plant.storage is not None:

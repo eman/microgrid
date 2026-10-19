@@ -31,8 +31,9 @@ The setup asks, in order:
    house load, and the plant's mode: an entity and the modes that run the dispatch the
    model describes, or *the plant always runs as modelled*. An SOC entity that states
    no unit is read in the unit chosen here (percent or a fraction). A heartbeat entity,
-   one that reports every few seconds, is optional; without it the house load stands
-   for one.
+   one that reports every few seconds, is optional: with one, a silent connection to
+   the plant reads as unknown, not as steady values (the ledger takes the house load
+   for one where none is set).
 3. **Prices**, from one of the [price readers](../configuration/data-sources.md):
    TariffKit, Nord Pool, Amber Electric, Tibber, Octopus Energy, ENTSO-E, OpenEI, or
    any entity's attribute or action's response that holds rows of prices. A source that
@@ -98,9 +99,9 @@ scheduler](scheduler.md) says which output answers which question.
   the next minute. The load forecast keeps its recent issues, so a forecaster that
   publishes from the next half hour still covers the slot under way.
 - **The measured entities** feed series as their states change. A state that is not a
-  number (`unavailable`) is a gap. While the heartbeat is silent longer than 3 minutes
-  the series end where it last reported: the SOC and the meters read as unknown, and
-  the live value names `telemetry`.
+  number (`unavailable`) is a gap. While a configured heartbeat is silent longer than
+  3 minutes the series end where it last reported: the SOC and the meters read as
+  unknown, and the live value names `telemetry`.
 - **A valuation** is made every minute and published on a new forecast basis (new
   prices, a new PV or load forecast, a change in which inputs are usable) or every 10
   minutes, and holds for 30 minutes. A valuation with no price for the slot under way is
@@ -114,8 +115,8 @@ scheduler](scheduler.md) says which output answers which question.
   `battery_lots` and prices what the battery holds as bought at the import until the
   recorder has them.
 
-A source that fails six reads in a row raises a repair issue, which clears when it reads
-again. The entry's diagnostics hold the configuration (entity ids redacted), what each
+A source that has failed every read for 30 minutes raises a repair issue, which clears
+when it reads again. The entry's diagnostics hold the configuration (entity ids redacted), what each
 input rests on, the causes and the lots.
 
 ## What it does not read yet

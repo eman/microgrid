@@ -5,7 +5,7 @@
   a source that failed is read again at the next minute (an integration loaded after
   this one, at Home Assistant's start).
 - **Measured** entities feed series as their states change (:mod:`.telemetry`), vouched
-  for while the heartbeat (the configured one, else the house load) reports: silent
+  for while the configured heartbeat reports: silent
   longer than :data:`~microgrid.cli.history.TELEMETRY`, the series end where it last
   reported and the live value names ``telemetry``.
 - **A valuation** is made every :data:`~.const.DECIDE_EVERY` (``Engine.value``, in the
@@ -49,7 +49,7 @@ from .const import (
     CONF_PV_FORECAST,
     DECIDE_EVERY,
     DOMAIN,
-    FAILURES_FOR_ISSUE,
+    FAILING_FOR_ISSUE,
     FORECAST_READ,
     LIVE_EVERY,
     LOAD_ISSUES,
@@ -127,7 +127,9 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         self._read_at: dict[str, datetime] = {}
         self._read_problems: dict[str, str] = {}
         self._read_sources: dict[str, str] = {}
-        self._failures: dict[str, int] = {}
+        #: When each failing source's reads began to fail, and those with an issue.
+        self._failing_since: dict[str, datetime] = {}
+        self._raised: set[str] = set()
         self._last: LastIssue | None = None
         self._published: Published | None = None
         self._live: LiveValue | None = None
@@ -166,10 +168,11 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         entry.async_on_unload(self._clear_issues)
 
     def vouched_until(self, now: datetime) -> datetime:
-        """Until when the measured series are known: ``now`` while the heartbeat reports,
-        else when it last did."""
+        """Until when the measured series are known: ``now`` while the configured
+        heartbeat reports, else when it last did; ``now`` without one (no entity reports
+        often enough by itself to stand for one)."""
         measured = self.setup.measured
-        beat = None if measured is None else measured.heartbeat or measured.house
+        beat = None if measured is None else measured.heartbeat
         if beat is None:
             return now
         state = self.hass.states.get(beat)
@@ -219,7 +222,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             except (SourceError, ValueError) as err:
                 problems[name] = str(err)
                 used.pop(name, None)
-                self._failed(name, str(err))
+                self._failed(name, str(err), now)
                 continue
             self._read_again(name)
             problems.pop(name, None)
@@ -229,10 +232,10 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             kept.append(Sample(now, forecast))
             del kept[: -(LOAD_ISSUES if name == CONF_LOAD_FORECAST else 1)]
 
-    def _failed(self, name: str, why: str) -> None:
-        count = self._failures.get(name, 0) + 1
-        self._failures[name] = count
-        if count == FAILURES_FOR_ISSUE:
+    def _failed(self, name: str, why: str, now: datetime) -> None:
+        since = self._failing_since.setdefault(name, now)
+        if name not in self._raised and now - since >= FAILING_FOR_ISSUE:
+            self._raised.add(name)
             ir.async_create_issue(
                 self.hass,
                 DOMAIN,
@@ -248,7 +251,9 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             )
 
     def _read_again(self, name: str) -> None:
-        if self._failures.pop(name, 0) >= FAILURES_FOR_ISSUE:
+        self._failing_since.pop(name, None)
+        if name in self._raised:
+            self._raised.discard(name)
             ir.async_delete_issue(self.hass, DOMAIN, f"{self.config_entry.entry_id}_{name}")
 
     def _unit(self, entity: str) -> str | None:

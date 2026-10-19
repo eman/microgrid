@@ -9,7 +9,7 @@ import pytest
 from custom_components.microgrid.const import (
     CONF_PLANT,
     DOMAIN,
-    FAILURES_FOR_ISSUE,
+    FAILING_FOR_ISSUE,
     SERVICE_GET_VALUATION,
 )
 from custom_components.microgrid.diagnostics import async_get_config_entry_diagnostics
@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from ha_fixtures import NOW, beat, entity_id, entry, options, plant_data, rows, set_sources, setup
+from ha_fixtures import NOW, entity_id, entry, options, plant_data, rows, set_sources, setup
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -90,12 +90,10 @@ async def test_a_valuation_is_published_again_on_its_timer_and_on_new_prices(
     assert first is not None
 
     frozen.tick(timedelta(minutes=2))
-    beat(hass)
     await coordinator.async_refresh()
     assert coordinator.data.published is first  # nothing new: no new valuation
 
     frozen.tick(timedelta(minutes=10))
-    beat(hass)
     await coordinator.async_refresh()
     refreshed = coordinator.data.published
     assert refreshed is not first and refreshed.reason == "live"
@@ -107,7 +105,6 @@ async def test_a_valuation_is_published_again_on_its_timer_and_on_new_prices(
         {"rates": rows(start, 50, buy=0.40, sell=0.05), "unit_of_measurement": "EUR/kWh"},
     )
     frozen.tick(timedelta(minutes=5))
-    beat(hass)
     await coordinator.async_refresh()
     repriced = coordinator.data.published
     assert repriced.reason == "forecast_basis"
@@ -140,7 +137,7 @@ async def test_without_prices_nothing_is_published_and_a_failing_source_is_a_rep
     assert valuation is not None and valuation.state == "unavailable"
     assert "sensor.rates" in found.runtime_data.data.problems["prices"]
     coordinator = found.runtime_data
-    for _ in range(FAILURES_FOR_ISSUE):
+    for _ in range(FAILING_FOR_ISSUE // timedelta(minutes=5)):
         frozen.tick(timedelta(minutes=5))
         await coordinator.async_refresh()
     registry = ir.async_get(hass)
@@ -155,14 +152,15 @@ async def test_without_prices_nothing_is_published_and_a_failing_source_is_a_rep
     # Raised again, then the entry reloaded (an options change): the new coordinator
     # counts afresh, so the old issue goes with the old one.
     hass.states.async_remove("sensor.rates")
-    for _ in range(FAILURES_FOR_ISSUE):
+    # The first failure is the first read after the removal: 30 minutes on from it.
+    for _ in range(FAILING_FOR_ISSUE // timedelta(minutes=5) + 1):
         frozen.tick(timedelta(minutes=5))
         await coordinator.async_refresh()
     assert registry.async_get_issue(DOMAIN, issue) is not None
     assert await hass.config_entries.async_reload(found.entry_id)
     await hass.async_block_till_done()
     assert registry.async_get_issue(DOMAIN, issue) is None
-    for _ in range(FAILURES_FOR_ISSUE):
+    for _ in range(FAILING_FOR_ISSUE // timedelta(minutes=5)):
         frozen.tick(timedelta(minutes=5))
         await found.runtime_data.async_refresh()
     assert registry.async_get_issue(DOMAIN, issue) is not None
