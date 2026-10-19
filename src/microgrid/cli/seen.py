@@ -27,8 +27,10 @@ _TRAVEL_MIN: Final = 0.3
 #: An hour that moved less than this (kWh) is idle: what the SOC does then (a drift,
 #: a standby draw the meter does not see) is not the meter's energy.
 _IDLE_KWH: Final = 0.05
-#: A SOC this close to full or empty is at its bound: held there, it cannot step to
-#: follow what the meter shows (a battery kept full by PV, still balancing at 100 %).
+#: A SOC this close to the highest or lowest it reached is at its bound: held there, it
+#: cannot step to follow what the meter shows (a battery kept full by PV, still
+#: balancing at full). The bound is what the sensor reached, not 1 or 0: some top out
+#: at 99 %.
 _AT_BOUND: Final = 0.005
 _HOUR: Final = timedelta(hours=1)
 
@@ -68,10 +70,14 @@ def _capacity(
     energy: over a run of hours the SOC's travel adds up to the true change within one
     step, so leaving such hours out would leave energy out and no travel. An hour where
     the meter and the SOC go opposite ways (a step from the hour before, a meter out of
-    step) is left out, as is an hour the SOC spends at full or empty, where it cannot
-    move however the meter reads."""
+    step) is left out, as is an hour the SOC spends at the highest or lowest it reached,
+    where it cannot move however the meter reads."""
     starts = _slots(start, end, _HOUR)
     kw = means(power, starts, _HOUR)
+    reached = [s.value for s in soc.samples if s.value is not None and start <= s.at <= end]
+    if not reached:
+        return None
+    top, bottom = max(reached), min(reached)
     moved: list[float] = []
     travelled: list[float] = []
     for hour, mean in zip(starts, kw, strict=True):
@@ -79,7 +85,7 @@ def _capacity(
         if mean is None or before is None or after is None:
             continue
         kwh, change = mean * 1.0, after - before
-        if abs(kwh) < _IDLE_KWH or kwh * change < 0 or _held(before, after):
+        if abs(kwh) < _IDLE_KWH or kwh * change < 0 or _held(before, after, top, bottom):
             continue
         moved.append(abs(kwh))
         travelled.append(abs(change))
@@ -89,11 +95,10 @@ def _capacity(
     return math.fsum(moved) / total
 
 
-def _held(before: float, after: float) -> bool:
-    """Whether the SOC was at the same bound at both ends of an hour."""
-    return (before >= 1 - _AT_BOUND and after >= 1 - _AT_BOUND) or (
-        before <= _AT_BOUND and after <= _AT_BOUND
-    )
+def _held(before: float, after: float, top: float, bottom: float) -> bool:
+    """Whether the SOC was at the same bound (the highest or lowest it reached) at both
+    ends of an hour."""
+    return min(before, after) >= top - _AT_BOUND or max(before, after) <= bottom + _AT_BOUND
 
 
 def _round_up(value: float | None, step: float = 0.1) -> float | None:
