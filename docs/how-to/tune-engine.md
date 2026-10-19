@@ -1,7 +1,7 @@
 # Tune the engine
 
-The engine's settings (`engine/2`) say how the price is computed, not what the plant
-is. Every field has a default, and `schema = "engine/2"` alone is the engine as it runs.
+The engine's settings (`engine/2`) say how the price is computed; the plant is
+`plant/2`'s. Every field has a default, and `schema = "engine/2"` alone is the engine as it runs.
 Change one when your data or your plant gives a reason; the
 [reference](../reference/engine.md) lists them all.
 

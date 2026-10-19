@@ -2,8 +2,8 @@
 
 A dataset is a directory of series in the library's own terms, so every `microgrid`
 command runs without the plant it came from. The format is the library's
-(`microgrid.cli.dataset`), not any integration's: whatever recorded the data, a
-client writes it out as these files. [Build a dataset](../how-to/build-dataset.md)
+(`microgrid.cli.dataset`): whatever recorded the data, a client writes it out as
+these files. [Build a dataset](../how-to/build-dataset.md)
 walks through making one.
 
 ```text

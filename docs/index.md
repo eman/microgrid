@@ -9,7 +9,7 @@ It is a Python library: it takes the plant's description and its inputs as time 
 
 ```mermaid
 flowchart LR
-    subgraph in["Inputs (time series, from any source)"]
+    subgraph in["Inputs (time series)"]
         prices["import and export prices"]
         pv["PV forecast<br/>(quantiles)"]
         load["load forecast"]
@@ -40,7 +40,7 @@ defined in [Outputs](concepts/outputs.md).
 - **It prices the weather's uncertainty.** The price is an average over PV scenarios,
   published with a pessimistic case and the chance it holds.
 - **It degrades conservatively.** A missing or stale input moves the price toward the
-  import price and says why. A stale discount is never reused.
+  import price and says why.
 
 ## Where to start
 

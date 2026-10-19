@@ -109,7 +109,7 @@ slot                     import   export  marginal  surplus kW  regime
 The input that could not be read is named on standard error, and the valuation falls
 back to the import price ([`fallback_import`](../reference/causes.md#kinds)), naming
 its causes (`battery_soc`, and `work_mode` for [dispatch as
-modelled](../concepts/inputs.md#dispatch-as-modelled)) rather than guessing. With
+modelled](../concepts/inputs.md#dispatch-as-modelled)). With
 `[measured]` in place, the same command gives the model's valuation (`stored_value_v1`), printed as
 `value` prints one ([Run your first valuation](first-valuation.md#4-read-the-result)).
 

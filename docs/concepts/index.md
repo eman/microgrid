@@ -8,7 +8,7 @@
 - **[Inputs](inputs.md).** Each input's meaning, its name on every surface, and which
   command needs which.
 - **[Units](units.md).** A series carries its unit; the engine works in kW, kWh, a
-  fraction for the SOC, and the prices' currency per kWh, whatever that currency is.
+  fraction for the SOC, and the prices' currency per kWh.
 - **[The plant model](plant-model.md).** How the plant behaves, behind a port: it
   projects the flows, and the price rule reads them.
 - **[Outputs](outputs.md).** What a valuation gives per slot: the marginal cost, the

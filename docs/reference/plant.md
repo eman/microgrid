@@ -2,8 +2,8 @@
 
 A plant's topology and parameters as plain data: what `PlantConfig.from_mapping`
 reads and `PlantConfig.to_mapping` writes back exactly. The `microgrid` command reads it
-from TOML (`plant.toml`); a Python client may build the mapping from anything. It is
-the only plant schema. [Describe your plant](../how-to/describe-plant.md) shows how to
+from TOML (`plant.toml`); a Python client may build the mapping from anything.
+[Describe your plant](../how-to/describe-plant.md) shows how to
 write one for each topology.
 
 **Validation names every problem with its path** (`battery.capacity_kwh: must be
@@ -186,7 +186,7 @@ sign 1.
 ## Examples
 
 The library ships four example plants (`microgrid.plant.examples`), each with
-synthetic, round parameters fitted to no real plant.
+synthetic, round parameters.
 
 === "AC-coupled PV, battery on a hybrid"
 

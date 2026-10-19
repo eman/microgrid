@@ -27,7 +27,7 @@ another plant model moves every measure.
 **What is a site's comes in from its caller,** as opaque strings: each day's labels
 (why the model does not describe it), and the DC-bus load's draw outside the house
 meter. The function adds one label of its own, :data:`GAP`, where the telemetry was
-silent. It names no load, and groups nothing: the caller groups the days and runs by
+silent. The caller groups the days and runs by
 their labels and sets the bars.
 
 **A plant model with a DC-bus load** is fed the session as the plant met it: the house
@@ -35,7 +35,7 @@ load (the load served less the DC-bus load's draw) on the AC side, the DC-bus lo
 meter on the DC bus, and, for a run that starts inside a session, whether its hold
 rules held the battery from the session's metered start. The meters are read through
 the pinned plant without its DC-bus loads (:func:`meters_plant`), so a candidate's
-change shows only in its prediction. Pure: no I/O.
+change shows only in its prediction.
 """
 
 from __future__ import annotations

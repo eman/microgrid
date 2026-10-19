@@ -23,8 +23,8 @@ units.convert(85.0, "EUR/MWh", "price")       # 0.085, EUR per kWh
 converted when it is read; a Python client converts its own inputs before handing them
 over (the engine reads the numbers as given).
 
-**A unit it does not know is refused** (`UnitError`), never guessed: a reading in an
-unknown unit is not used, rather than used wrongly by a factor of a thousand.
+**A unit it does not know is refused** (`UnitError`): a reading in an unknown unit is
+not used.
 
 ## Currency
 

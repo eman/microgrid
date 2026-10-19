@@ -51,8 +51,6 @@ conversion (``Battery.stored_by``), whose loss grows with power: PV and the grid
 charge through the same inverter on an AC-coupled plant, so they share it, and the
 grid's top-ups lose more only because they run at the charge limit. A discharge is
 drawn through ``Battery.drawn_by``.
-
-Pure: no I/O.
 """
 
 from __future__ import annotations

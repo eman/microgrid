@@ -2,16 +2,11 @@
 
 A plant is described by a :class:`PlantConfig` (``plant/2``), given as data.
 :class:`Plant` is that plant behind the port
-(:class:`~microgrid.plant.port.PlantModel`): one configurable model, not one class per
-topology, running every configuration through one dispatch. ``Plant.project`` projects
+(:class:`~microgrid.plant.port.PlantModel`): one configurable model, running every
+configuration through one dispatch. ``Plant.project`` projects
 the slots it is given from a state of charge, PV and load, and returns their flows
 (:class:`~microgrid.plant.flows.SlotFlow`): where every kWh goes, the battery's charge,
 what is imported and exported.
-
-The plant model is useful beyond the marginal price, so this package stands alone: it
-imports nothing of the price model (``microgrid.engine``) or the command
-(``microgrid.cli``), and importing it loads neither. The price model is one client of
-it.
 
 The public names: :class:`PlantConfig` and every part of it (the battery's parameters,
 :class:`Battery`, the grid-charge windows, :class:`GridCharge`, ...), :class:`Plant`,

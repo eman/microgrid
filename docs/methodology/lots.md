@@ -70,8 +70,7 @@ origin](stored-value.md#energy-of-unknown-origin)).
 
 After each slot the lots, and the pool, are scaled to the metered stored energy, both
 ways and pro rata at their own basis. What the model does not explain (self-discharge, the battery
-management system, meter timing, an efficiency slightly off) shows as **unexplained**,
-never as drift and never as free energy.
+management system, meter timing, an efficiency slightly off) shows as **unexplained**.
 
 ## Flows at the meters' resolution
 

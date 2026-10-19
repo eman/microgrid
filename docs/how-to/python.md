@@ -1,7 +1,6 @@
 # Use the library from Python
 
-Build the configuration once, hand the engine series, and read what comes back. Where
-the data comes from is yours to decide.
+Build the configuration once, hand the engine series, and read what comes back.
 
 ```mermaid
 flowchart LR
@@ -41,8 +40,7 @@ engine = Engine(EngineConfig.from_mapping({"schema": "engine/2"}, plant=plant))
 ```
 
 - `PlantConfig.from_mapping` takes `plant/2` as plain data: parse your TOML, JSON or
-  YAML and pass the result. The zone is a `ZoneInfo` you build: the library reads no
-  files, not even the zone database.
+  YAML and pass the result. The zone is a `ZoneInfo` you build.
 - `EngineConfig.from_mapping` takes `engine/2`; `{"schema": "engine/2"}` is every
   default. Both raise an error naming every problem with its path.
 

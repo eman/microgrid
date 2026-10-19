@@ -12,8 +12,6 @@ with the noise floors it reads them at: :data:`MODEL` for a plant model's flows,
 :data:`OBSERVED` for metered ones; the house importing and PV spilling in a slot, as it
 reads them: :func:`importing`, :func:`spilling`), the valuation of given PV scenarios
 (:func:`value_energy`) and the surplus forecast (:func:`forecast_surplus`).
-
-Pure: no I/O.
 """
 
 from microgrid.engine._surplus import SurplusForecast, forecast_surplus

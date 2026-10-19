@@ -16,8 +16,7 @@ files (``dataset/1``), or on a site's live sources (``sources/1``: ``now``, ``so
 **The public surface** is each module's ``__all__``: what another client may import. The
 library's architecture test holds every module to declaring one.
 
-It reads and writes files and the network; the engine (:mod:`microgrid.engine`) does no
-I/O, and this package uses only the engine's public names.
+It reads and writes files and the network.
 """
 
 __all__ = [

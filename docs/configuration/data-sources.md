@@ -49,7 +49,7 @@ dispatch_as_modelled = true
 
 - **Paths are relative to the file.**
 - **An input with no section is not read.** A valuation that needs it names it as a
-  [cause](../reference/causes.md) and falls back; nothing is guessed in its place.
+  [cause](../reference/causes.md) and falls back.
 - **No entity has a default**, because each site names its own. The exceptions are
   tools that publish under a fixed name (EMHASS, Predbat); a section may rename those
   too.
@@ -104,7 +104,7 @@ developer tools) before configuring it.
 
 ## Presets for named tools
 
-These read a named tool's published shape. Each is an option, never a default.
+These read a named tool's published shape.
 
 ### Prices: `from = "tariffkit"`
 

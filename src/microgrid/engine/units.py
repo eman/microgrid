@@ -11,8 +11,6 @@ unit is not used, rather than used wrongly by a factor of a thousand. A currency
 never converted: a price's currency is the client's, and passes through as written,
 so a client must give prices in the currency it means (``¢/kWh`` passes as a
 currency named ``¢``: the numbers stay in cents).
-
-Pure: no I/O.
 """
 
 from __future__ import annotations

@@ -2,12 +2,11 @@
 
 The price of a kWh depends on what the plant will do with it: charge the battery,
 export, import. So the engine needs a model of the plant that projects where every kWh
-goes, slot by slot. That model sits behind a port: the price rule asks it questions and
-never what the plant is, so one price rule serves every topology.
+goes, slot by slot. That model sits behind a port: the price rule asks it questions, so
+one price rule serves every topology.
 
 The plant model is a package of its own, `microgrid.plant`. It is useful beyond the
-price, and loads nothing of the price model ([Use the plant model on its
-own](../how-to/plant-alone.md)).
+price ([Use the plant model on its own](../how-to/plant-alone.md)).
 
 ```mermaid
 flowchart LR
@@ -42,8 +41,7 @@ each topology answers for its own conversion.
 
 ## The library's plant model
 
-`microgrid.plant.Plant` is one configurable model, not one class per topology:
-it takes a `PlantConfig` (`plant/2`) and runs every configuration through one dispatch.
+`microgrid.plant.Plant` is one configurable model: it takes a `PlantConfig` (`plant/2`) and runs every configuration through one dispatch.
 That dispatch is **self-consumption with PV charging first**, slot by slot:
 
 1. PV serves the house (and the inverters' own draw).
@@ -57,10 +55,9 @@ export windows, holding the battery through a DC-bus load's session, the grid's 
 and export limits, inverter ratings. [`plant/2`](../reference/plant.md) lists them, and
 [Describe your plant](../how-to/describe-plant.md) shows each topology.
 
-## It models the plant's own rules, not an optimum
+## It models the plant's own rules
 
-The plant model predicts what the plant **will** do under its own rules. It does not
-decide what the plant should do, and it does not assume a plan nothing executes. A kWh's
+The plant model predicts what the plant **will** do under its own rules. A kWh's
 value depends on what actually dispatches the battery: energy a plant will export at
 midday for little is worth little to it, however much an optimizer could have earned
 with it in the evening.

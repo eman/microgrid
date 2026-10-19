@@ -230,7 +230,7 @@ page](stored-value.md) says; under `replacement`, the event ahead prices it.
   event: a kWh taken before the window ends the export run a kWh sooner, a kWh less
   exported at that slot's export price.
 
-## What the rule does not decide
+## Grid charging
 
-Whether, when or how much the plant charges from the grid. The grid-charge window is
-part of the plant's configuration, and the rule prices the purchase it implies.
+When and how much the plant charges from the grid is the plant's configuration (its
+grid-charge window); the rule prices the purchase it implies.

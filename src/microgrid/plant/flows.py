@@ -2,10 +2,9 @@
 (``microgrid.plant.flows``, public).
 
 These are the types the plant model returns, for any use of it; the price model
-(``microgrid.engine``) reads them too, and they know nothing of it: a plant model
-projects :class:`SlotFlow` s, and the price model reads their surplus and regime
-without knowing the plant. :class:`Flows` is the metered counterpart: one slot's
-meters, split between sources and sinks by the plant (``plant._meters.split_paths``).
+(``microgrid.engine``) reads their surplus and regime. :class:`Flows` is the metered
+counterpart: one slot's meters, split between sources and sinks by the plant
+(``plant._meters.split_paths``).
 
 **Surplus** is PV the site cannot use: more than the house takes and the
 battery can store, so the plan exports it (or curtails it above an export
@@ -15,7 +14,7 @@ battery is still charging and nothing is exported, there is no surplus.
 Battery export is never surplus. A load that is running is in the load series,
 so the surplus is net of its draw.
 
-Pure: no I/O. Times are UTC.
+Times are UTC.
 """
 
 from __future__ import annotations

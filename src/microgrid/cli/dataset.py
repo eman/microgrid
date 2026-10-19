@@ -1,7 +1,7 @@
 """A dataset: a directory of the library's series (``dataset/1``), so every command
 runs without the plant it came from.
 
-**The format, ``dataset/1``,** is the library's own terms, not any integration's:
+**The format, ``dataset/1``,** is the library's own terms:
 
 - ``manifest.json``: ``{"format": "dataset/1", "entries": {name: {"file": ...,
   "kind": ..., "forecasts": bool}}}``. An entry's ``kind`` is how its values read:

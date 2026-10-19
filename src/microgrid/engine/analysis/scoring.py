@@ -6,8 +6,6 @@ a kWh of flexible load would cost. Over metered flows the rule says what one did
 can be routed through the plant model and priced (:func:`route_hour`,
 :func:`price_hour`). The scores over those (the forecast's errors by hours ahead,
 :data:`BUCKETS`) are a client's to keep.
-
-Pure: no I/O.
 """
 
 from __future__ import annotations

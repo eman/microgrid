@@ -1,7 +1,7 @@
 """The microgrid engine: the model that values energy by time and source.
 
-It has no dependencies. The contract is what this module
-exports; every other module (``_value``, ``plant._paths``, ...) is private.
+The contract is what this module exports; every other module (``_value``,
+``plant._paths``, ...) is private.
 
     engine = Engine(EngineConfig(plant=plant.Plant(plant.PlantConfig(tz=..., pv=..., ...))))
     # what the battery holds and what it cost: the ledger over the meters' recent record

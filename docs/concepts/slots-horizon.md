@@ -27,7 +27,7 @@ a valuation at 11:00 UTC (13:00 local) has 285 slots, not 288.
 - **One grid for every input.** A forecast's intervals are aligned onto the slots: an
   hourly price holds over six 10-minute slots; two 5-minute prices average into one.
   An interval that crosses a slot's edge without covering the slot (15-minute prices
-  over 10-minute slots) is refused, not stretched: prices so are `unpriced`, naming
+  over 10-minute slots) is refused: prices so are `unpriced`, naming
   `prices`; choose a slot they tile (`slot_minutes = 15`, or 5). Every command, the
   scoring and the ledger among them, works on the engine's slot. See [Series and
   forecasts](series.md#aligning-onto-the-slots).

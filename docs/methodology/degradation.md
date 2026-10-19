@@ -45,7 +45,7 @@ The rule is stricter than "use the last good value":
 
 - **Prices and PV are read from the issue received last, alone.** A slot the newest
   issue leaves uncovered is not filled from an older issue the source has replaced.
-- **A forecast that is too old is not used at all**, not trusted for its early slots
+- **A forecast that is too old is not used at all**
   and ignored for the rest.
 - **A measured value holds only while its path is vouched for** (`known_until`). The
   age of a value says nothing (a steady SOC sends nothing); a silent path does.
@@ -58,7 +58,7 @@ The rule is stricter than "use the last good value":
 A client may know something the engine cannot see: its connection to the plant dropped,
 a meter it reads is broken. It passes those as `external` causes to the live value. Any
 external cause makes the value `fallback_import`. The client's causes are kept beside
-the engine's, in their own field, and never hide them.
+the engine's, in their own field.
 
 ## A mistake is not a degraded input
 

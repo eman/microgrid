@@ -1,8 +1,7 @@
 # `engine/2`
 
 How the price is computed, as plain data: what `EngineConfig.from_mapping` reads and
-`EngineConfig.to_mapping` writes. What the plant is comes apart (`plant/2`); where the
-data comes from is the client's. **Every field is optional and defaults to the value
+`EngineConfig.to_mapping` writes. What the plant is comes apart (`plant/2`). **Every field is optional and defaults to the value
 below**, so `schema = "engine/2"` alone is the engine as it runs. [Tune the
 engine](../how-to/tune-engine.md) says when to change one.
 

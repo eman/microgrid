@@ -3,7 +3,7 @@
 The plant model and its simulator are a package of their own, `microgrid.plant`. A
 client that wants to know what a solar + battery plant will do (where each kWh goes,
 what the battery holds, what is imported and exported) uses it without the price
-model: importing `microgrid.plant` loads nothing of `microgrid.engine`.
+model.
 
 ## Project a day
 

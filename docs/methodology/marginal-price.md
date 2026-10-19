@@ -98,4 +98,4 @@ each price holds for, so a scheduler can see when a load is too big for the marg
 "Under the plant's own dispatch" matters: which source serves a slot, and what the
 battery will hold then, depend on what the plant will actually do with the battery, not
 on what an optimal controller could do with it
-([The plant model](../concepts/plant-model.md#it-models-the-plants-own-rules-not-an-optimum)).
+([The plant model](../concepts/plant-model.md#it-models-the-plants-own-rules)).
