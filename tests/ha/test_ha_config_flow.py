@@ -173,6 +173,9 @@ async def test_the_options_edit_the_engine_and_the_plant(hass: HomeAssistant) ->
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert found.data[CONF_PLANT]["battery"]["capacity_kwh"] == 10.0
+    await hass.async_block_till_done()  # the reload the change starts
+    assert found.runtime_data.setup.plant.battery.capacity_kwh == 10.0
+    assert await hass.config_entries.async_unload(found.entry_id)
 
 
 def test_a_form_becomes_its_section() -> None:
