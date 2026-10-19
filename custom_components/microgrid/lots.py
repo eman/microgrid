@@ -74,7 +74,9 @@ def bindings(
         soc=measured.soc,
         soc_unit=soc_unit if soc_unit is not None else measured.soc_unit,
         house=measured.house,
-        heartbeat=measured.heartbeat or measured.house,
+        # A configured heartbeat alone: the house load may report too rarely to stand
+        # for one (each series is then trusted as far as the recorder kept it).
+        heartbeat=measured.heartbeat,
         telemetry=TELEMETRY,
         import_price=import_price,
         export_price=export_price,

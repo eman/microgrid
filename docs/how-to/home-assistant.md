@@ -32,8 +32,8 @@ The setup asks, in order:
    model describes, or *the plant always runs as modelled*. An SOC entity that states
    no unit is read in the unit chosen here (percent or a fraction). A heartbeat entity,
    one that reports every few seconds, is optional: with one, a silent connection to
-   the plant reads as unknown, not as steady values (the ledger takes the house load
-   for one where none is set).
+   the plant reads as unknown, not as steady values, in the valuation, the live value
+   and the battery's ledger.
 3. **Prices**, from one of the [price readers](../configuration/data-sources.md):
    TariffKit, Nord Pool, Amber Electric, Tibber, Octopus Energy, ENTSO-E, OpenEI, or
    any entity's attribute or action's response that holds rows of prices. A source that
