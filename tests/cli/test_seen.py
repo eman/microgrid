@@ -66,6 +66,24 @@ def test_a_coarse_soc_on_a_slow_large_battery() -> None:
     assert seen.capacity_kwh == pytest.approx(capacity, rel=0.05)
 
 
+def test_hours_held_full_say_nothing() -> None:
+    """A 10 kWh battery charged to full, then held there 6 hours while its meter shows
+    0.2 kW still going in (balancing): those hours count no energy."""
+    power: list[tuple[datetime, float]] = []
+    soc: list[tuple[datetime, float]] = []
+    stored = 0.2 * CAPACITY
+    for minute in range(24 * 60):
+        at = T0 + timedelta(minutes=minute)
+        hour = minute // 60
+        kw = 2.0 if 8 <= hour < 12 else 0.2 if 12 <= hour < 18 else -2.0 if 18 <= hour < 22 else 0.0
+        power.append((at, kw))
+        soc.append((at, min(1.0, math.floor(stored / CAPACITY * 100) / 100)))
+        stored = min(CAPACITY, stored + kw / 60)
+    end = T0 + 24 * HOUR
+    seen = battery_seen(Series.of(power, known_until=end), Series.of(soc, known_until=end), T0, end)
+    assert seen.capacity_kwh == pytest.approx(CAPACITY, rel=0.03)
+
+
 def test_limits_round_up() -> None:
     assert rounded(BatterySeen(4.91, 5.0, 13.46)) == BatterySeen(5.0, 5.0, 13.5)
     assert rounded(BatterySeen(None, None, None)) == BatterySeen(None, None, None)
