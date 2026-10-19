@@ -32,14 +32,27 @@ from .const import (
     CONF_PRICES,
     CONF_PV_FORECAST,
     DOMAIN,
+    SOURCE_SECTIONS,
 )
+from .discovery import EnergyFound, changed_signs, energy_found, proposed_signs, with_signs
+from .found_sources import Found, found_sources
 from .hass_api import HassApi
-from .setup import SetupError, read_engine, read_measured, read_plant, read_section
+from .setup import (
+    SetupError,
+    read_engine,
+    read_measured,
+    read_plant,
+    read_section,
+    read_setup,
+)
 
 CONF_NAME = "name"
 CONF_PLANT_TOML = "plant_toml"
+CONF_SOURCES_TOML = "sources_toml"
 CONF_FROM = "from"
 NO_SOURCE = "none"
+#: A choice of a source found: its index among those offered.
+FOUND = "found:"
 
 # -- the fields of each source -------------------------------------------------------------
 
@@ -153,6 +166,8 @@ READERS: dict[str, dict[str, tuple[Field, ...]]] = {
     },
 }
 
+#: The readers whose rows' keys are a ``keys`` table (EMHASS names its one key itself).
+_KEYED_READERS = ("entity", "action")
 #: The form's keys that become the section's ``keys`` table.
 _KEY_FIELDS = {
     "import_key": "import",
@@ -208,7 +223,7 @@ def section_from_form(name: str, reader: str, form: Mapping[str, Any]) -> dict[s
         value = form.get(spec.key)
         if value in (None, "", [], {}):
             continue
-        if spec.key in _KEY_FIELDS:
+        if spec.key in _KEY_FIELDS and reader in _KEYED_READERS:
             keys[_KEY_FIELDS[spec.key]] = str(value)
         elif spec.kind == "path":
             section[spec.key] = [part for part in str(value).split(".") if part]
@@ -231,7 +246,7 @@ def form_values(name: str, reader: str, section: Mapping[str, Any]) -> dict[str,
     keys = section.get("keys")
     named = keys if isinstance(keys, Mapping) else {}
     for spec in READERS[name][reader]:
-        if spec.key in _KEY_FIELDS:
+        if spec.key in _KEY_FIELDS and reader in _KEYED_READERS:
             if _KEY_FIELDS[spec.key] in named:
                 found[spec.key] = named[_KEY_FIELDS[spec.key]]
         elif spec.key in section:
@@ -289,6 +304,23 @@ def plant_to_toml(data: Mapping[str, Any]) -> str:
     from microgrid.cli.toml_text import dumps
 
     return dumps(dict(data))
+
+
+def sources_from_toml(text: str) -> dict[str, Any]:
+    """A ``sources/1`` file's sections, as the entry's options: the sources and what is
+    measured. Its ``home_assistant`` section and its files' paths are the command's;
+    here Home Assistant is the one running. Raises :class:`SetupError`."""
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as err:
+        raise SetupError([f"not TOML: {err}"]) from err
+    if data.get("schema") != "sources/1":
+        raise SetupError(['schema: must be "sources/1"'])
+    return {
+        name: data[name]
+        for name in (*SOURCE_SECTIONS, CONF_MEASURED)
+        if isinstance(data.get(name), Mapping)
+    }
 
 
 _COUPLINGS = ["none", "ac", "dc"]
@@ -456,23 +488,112 @@ def check_measured(plant: Plant, section: Mapping[str, Any]) -> None:
 # -- the flows -------------------------------------------------------------------------------
 
 
+def energy_section(plant: Plant, found: EnergyFound) -> dict[str, Any]:
+    """The measured section the Energy dashboard proposes for ``plant``."""
+    by_kind = {"pv": found.pv, "grid": found.grid, "battery": found.battery}
+    kinds = [meter.measures for meter in plant.config.meter_set]
+    meters = {
+        meter.name: entity
+        for meter in plant.config.meter_set
+        if (entity := by_kind.get(meter.measures)) is not None and kinds.count(meter.measures) == 1
+    }
+    section: dict[str, Any] = {"meters": meters} if meters else {}
+    if found.soc is not None and plant.storage is not None:
+        section["soc"] = found.soc
+    return section
+
+
+def plant_id(plant: Plant, measured: Mapping[str, Any]) -> str | None:
+    """What a plant is known by: its grid meter's entity, else its consumption
+    meter's (the meter in the grid's place)."""
+    meters = measured.get("meters", {})
+    for kind in ("grid", "consumption"):
+        for meter in plant.config.meter_set:
+            if meter.measures == kind and meters.get(meter.name):
+                return str(meters[meter.name])
+    return None
+
+
+def _notes(lines: tuple[str, ...]) -> dict[str, str]:
+    return {"notes": "\n".join(f"- {line}" for line in lines)}
+
+
 class _Sections:
-    """The source steps the config and options flows share."""
+    """The steps the config and options flows share."""
 
     hass: HomeAssistant
     plant_data: dict[str, Any]
     options: dict[str, Any]
     _reader: dict[str, str]
+    #: The signs to confirm that differ from the plant's, each with why.
+    _signs: dict[str, tuple[float, str]] | None = None
+    #: The sources found for each input, as last offered.
+    _found: dict[str, list[Found]]
 
     def _plant(self) -> Plant:
         return read_plant(self.plant_data, self.hass.config.time_zone)
 
+    def _keep_plant(self, data: dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    async def _after_measured(self) -> ConfigFlowResult:
+        raise NotImplementedError
+
+    async def _measured_suggested(self, plant: Plant) -> dict[str, Any]:
+        """What the measured form shows: the section as set, else the Energy
+        dashboard's proposal."""
+        current = self.options.get(CONF_MEASURED)
+        if current:
+            return dict(current)
+        return energy_section(plant, await energy_found(self.hass))
+
+    async def _measured_kept(self, plant: Plant, section: dict[str, Any]) -> ConfigFlowResult:
+        """Keep the measured section; confirm the signs the recorder proposes, if any
+        differ from the plant's."""
+        self.options[CONF_MEASURED] = section
+        changed = changed_signs(plant, await proposed_signs(self.hass, plant, section))
+        if changed:
+            self._signs = changed
+            return await self.async_step_signs()
+        return await self._after_measured()
+
+    async def async_step_signs(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The meters whose recorded readings say they read the other way."""
+        assert self._signs is not None
+        changed = self._signs
+        if user_input is not None:
+            if user_input.get("apply", True):
+                signs = {name: sign for name, (sign, _) in changed.items()}
+                self._keep_plant(with_signs(self.plant_data, self._plant(), signs))
+            self._signs = None
+            return await self._after_measured()
+        notes = tuple(f"{why}: sign {sign:+.0f}" for sign, why in changed.values())
+        return self.async_show_form(  # type: ignore[attr-defined,no-any-return]
+            step_id="signs",
+            data_schema=vol.Schema(
+                {vol.Required("apply", default=True): selector.BooleanSelector()}
+            ),
+            description_placeholders=_notes(notes),
+        )
+
     async def _choose(
         self, name: str, user_input: dict[str, Any] | None, *, optional: bool
     ) -> tuple[str | None, vol.Schema]:
-        readers = list(READERS[name])
-        options = [*readers, NO_SOURCE] if optional else readers
-        current = self.options.get(name, {}).get(CONF_FROM, NO_SOURCE if optional else readers[0])
+        """The source chosen for ``name``: one an installed integration publishes
+        (``found:<n>``), or a reader to set up by hand. Without a source set, the first
+        found is proposed."""
+        if user_input is not None:
+            return str(user_input[CONF_FROM]), vol.Schema({})
+        found = self._found[name] = found_sources(self.hass, name)
+        readers = [*READERS[name], *([NO_SOURCE] if optional else [])]
+        options: list[selector.SelectOptionDict] = [
+            selector.SelectOptionDict(value=f"{FOUND}{i}", label=f.label)
+            for i, f in enumerate(found)
+        ]
+        options += [selector.SelectOptionDict(value=r, label=r) for r in readers]
+        current = self.options.get(name, {}).get(CONF_FROM)
+        if current is None:
+            current = f"{FOUND}0" if found else (NO_SOURCE if optional else readers[0])
         schema = vol.Schema(
             {
                 vol.Required(CONF_FROM, default=current): selector.SelectSelector(
@@ -480,7 +601,18 @@ class _Sections:
                 )
             }
         )
-        return (None if user_input is None else str(user_input[CONF_FROM])), schema
+        return None, schema
+
+    def _pick(self, name: str, chosen: str) -> tuple[str, dict[str, Any] | None]:
+        """The reader ``chosen`` names; for a source found, its section kept to fill the
+        reader's form, and the form's values to submit at once where it needs nothing
+        more."""
+        if not chosen.startswith(FOUND):
+            return chosen, None
+        found = self._found[name][int(chosen.removeprefix(FOUND))]
+        reader = str(found.section[CONF_FROM])
+        self.options[name] = dict(found.section)
+        return reader, None if found.missing else form_values(name, reader, found.section)
 
     async def _fields(
         self, name: str, user_input: dict[str, Any] | None
@@ -512,9 +644,26 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         self.plant_data = {}
         self.options = {CONF_ENGINE: {}}
         self._reader = {}
+        self._found = {}
         self._title = "Microgrid"
         self._choices: dict[str, Any] = {}
         self._battery: dict[str, Any] = {}
+        #: Whether the sources came from a file: once measured, the entry is made.
+        self._from_files = False
+
+    def _keep_plant(self, data: dict[str, Any]) -> None:
+        self.plant_data = data
+
+    async def _after_measured(self) -> ConfigFlowResult:
+        if self._from_files:
+            return self._create()
+        return await self.async_step_prices()
+
+    async def _unique(self, plant: Plant, section: Mapping[str, Any]) -> None:
+        """One entry per plant, known by its grid meter's entity (:func:`plant_id`)."""
+        if (found := plant_id(plant, section)) is not None:
+            await self.async_set_unique_id(found)
+            self._abort_if_unique_id_configured()
 
     @staticmethod
     @callback
@@ -522,7 +671,58 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         return MicrogridOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="user", menu_options=["plant_paste", "plant_build"])
+        return self.async_show_menu(
+            step_id="user", menu_options=["plant_build", "plant_paste", "files"]
+        )
+
+    async def async_step_files(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """A plant file and a ``sources/1`` file, as the command reads them."""
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                plant_data = plant_from_toml(user_input[CONF_PLANT_TOML])
+                options = sources_from_toml(user_input[CONF_SOURCES_TOML])
+                if CONF_PRICES not in options:
+                    raise SetupError(["prices: the sources file names no prices"])
+                setup = read_setup({CONF_PLANT: plant_data}, options, self.hass.config.time_zone)
+                check_measured(setup.plant, options.get(CONF_MEASURED, {}))
+                failed = [
+                    f"{name}: {why['error']}"
+                    for name in SOURCE_SECTIONS
+                    if name in options
+                    and (
+                        why := await _try_source(self.hass, setup.plant, None, name, options[name])
+                    )
+                    is not None
+                ]
+            except SetupError as err:
+                errors["base"], placeholders = "invalid", _problems(err)
+            else:
+                if failed:
+                    errors["base"], placeholders = "read_failed", {"error": "; ".join(failed)}
+                else:
+                    self._title = user_input[CONF_NAME]
+                    self.plant_data = plant_data
+                    self.options = {**options, CONF_ENGINE: {}}
+                    self._from_files = True
+                    measured = dict(options.get(CONF_MEASURED, {}))
+                    await self._unique(setup.plant, measured)
+                    return await self._measured_kept(setup.plant, measured)
+        multiline = selector.TextSelector(selector.TextSelectorConfig(multiline=True))
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME, default=self._title): selector.TextSelector(),
+                vol.Required(CONF_PLANT_TOML): multiline,
+                vol.Required(CONF_SOURCES_TOML): multiline,
+            }
+        )
+        return self.async_show_form(
+            step_id="files",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders=placeholders,
+        )
 
     async def async_step_plant_paste(
         self, user_input: dict[str, Any] | None = None
@@ -585,7 +785,13 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._battery = user_input
             return await self.async_step_plant_grid()
-        return self.async_show_form(step_id="plant_battery", data_schema=_BATTERY_SCHEMA)
+        capacity = (await energy_found(self.hass)).capacity_kwh
+        return self.async_show_form(
+            step_id="plant_battery",
+            data_schema=self.add_suggested_values_to_schema(
+                _BATTERY_SCHEMA, {"capacity_kwh": capacity} if capacity else {}
+            ),
+        )
 
     async def async_step_plant_grid(
         self, user_input: dict[str, Any] | None = None
@@ -621,11 +827,11 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
             except SetupError as err:
                 errors["base"], placeholders = "invalid", _problems(err)
             else:
-                self.options[CONF_MEASURED] = section
-                return await self.async_step_prices()
+                await self._unique(plant, section)
+                return await self._measured_kept(plant, section)
         return self.async_show_form(
             step_id="measured",
-            data_schema=measured_schema(plant, self.options.get(CONF_MEASURED, {})),
+            data_schema=measured_schema(plant, await self._measured_suggested(plant)),
             errors=errors,
             description_placeholders=placeholders,
         )
@@ -633,8 +839,8 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
     async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         chosen, schema = await self._choose(CONF_PRICES, user_input, optional=False)
         if chosen is not None:
-            self._reader[CONF_PRICES] = chosen
-            return await self.async_step_prices_source()
+            self._reader[CONF_PRICES], submit = self._pick(CONF_PRICES, chosen)
+            return await self.async_step_prices_source(submit)
         return self.async_show_form(step_id="prices", data_schema=schema)
 
     async def async_step_prices_source(
@@ -662,8 +868,8 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
             self.options.pop(CONF_PV_FORECAST, None)
             return await self.async_step_load_forecast()
         if chosen is not None:
-            self._reader[CONF_PV_FORECAST] = chosen
-            return await self.async_step_pv_forecast_source()
+            self._reader[CONF_PV_FORECAST], submit = self._pick(CONF_PV_FORECAST, chosen)
+            return await self.async_step_pv_forecast_source(submit)
         return self.async_show_form(step_id="pv_forecast", data_schema=schema)
 
     async def async_step_pv_forecast_source(
@@ -691,8 +897,8 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
             self.options.pop(CONF_LOAD_FORECAST, None)
             return self._create()
         if chosen is not None:
-            self._reader[CONF_LOAD_FORECAST] = chosen
-            return await self.async_step_load_forecast_source()
+            self._reader[CONF_LOAD_FORECAST], submit = self._pick(CONF_LOAD_FORECAST, chosen)
+            return await self.async_step_load_forecast_source(submit)
         return self.async_show_form(step_id="load_forecast", data_schema=schema)
 
     async def async_step_load_forecast_source(
@@ -733,6 +939,7 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
 
     def __init__(self) -> None:
         self._reader = {}
+        self._found = {}
         #: A plant edited in this flow, saved with what it measures.
         self._new_plant: dict[str, Any] | None = None
 
@@ -752,6 +959,19 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
 
     def _save(self) -> ConfigFlowResult:
         return self.async_create_entry(data=self.options)
+
+    def _keep_plant(self, data: dict[str, Any]) -> None:
+        self._new_plant = data
+
+    async def _after_measured(self) -> ConfigFlowResult:
+        # The plant is known by its grid meter: a new one is the entry's new id.
+        known = plant_id(self._plant(), self.options.get(CONF_MEASURED, {}))
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data={**self.config_entry.data, CONF_PLANT: self.plant_data},
+            unique_id=known,
+        )
+        return self._save()
 
     async def async_step_plant(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -796,16 +1016,19 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
             except SetupError as err:
                 errors["base"], placeholders = "invalid", _problems(err)
             else:
-                self.options[CONF_MEASURED] = section
-                if self._new_plant is not None:
-                    self.hass.config_entries.async_update_entry(
-                        self.config_entry,
-                        data={**self.config_entry.data, CONF_PLANT: self._new_plant},
-                    )
-                return self._save()
+                known = plant_id(plant, section)
+                other = (
+                    self.hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, known)
+                    if known is not None
+                    else None
+                )
+                if other is not None and other.entry_id != self.config_entry.entry_id:
+                    errors["base"] = "plant_taken"  # its grid meter is another entry's
+                else:
+                    return await self._measured_kept(plant, section)
         return self.async_show_form(
             step_id="measured",
-            data_schema=measured_schema(plant, self.options.get(CONF_MEASURED, {})),
+            data_schema=measured_schema(plant, await self._measured_suggested(plant)),
             errors=errors,
             description_placeholders=placeholders,
         )
@@ -816,15 +1039,15 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
         user_input: dict[str, Any] | None,
         *,
         optional: bool,
-        next_step: Callable[[], Awaitable[ConfigFlowResult]],
+        next_step: Callable[[dict[str, Any] | None], Awaitable[ConfigFlowResult]],
     ) -> ConfigFlowResult:
         chosen, schema = await self._choose(name, user_input, optional=optional)
         if chosen == NO_SOURCE:
             self.options.pop(name, None)
             return self._save()
         if chosen is not None:
-            self._reader[name] = chosen
-            return await next_step()
+            self._reader[name], submit = self._pick(name, chosen)
+            return await next_step(submit)
         return self.async_show_form(step_id=name, data_schema=schema)
 
     async def _source_fields(

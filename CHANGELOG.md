@@ -6,6 +6,15 @@ Each user-visible change, under the release it ships in.
 
 ### Added
 
+- The Home Assistant integration's setup proposes what Home Assistant already knows: the
+  price, PV and load forecast integrations installed (TariffKit, Nord Pool, Amber,
+  Tibber, Octopus, ENTSO-E, OpenEI, Solcast, EMHASS, Predbat), each read at once where
+  it needs nothing more; the measured entities and the battery's capacity the Energy
+  dashboard names. Each meter's sign is checked against two days of the recorder's
+  history and, where the records say it reads the other way, set on confirmation. A
+  plant file and a `sources/1` file can be imported together. A plant is set up once.
+- `microgrid.cli.signs`: each meter's sign, told from what the meters recorded (PV and
+  DC-bus loads positive, the battery against its SOC, the grid by the balance).
 - A Home Assistant integration (`custom_components/microgrid`, installed with HACS from
   a release's `microgrid.zip`): the plant (`plant/2`, pasted or built step by step),
   its measured entities and its sources configured in Home Assistant, each checked by

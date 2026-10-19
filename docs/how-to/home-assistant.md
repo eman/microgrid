@@ -18,34 +18,56 @@ Then *Settings → Devices & services → Add integration → Microgrid*.
 
 ## Configure
 
-The setup asks, in order:
+The setup proposes what Home Assistant already knows; each step shows its proposal to
+keep or change. It asks, in order:
 
-1. **The plant.** Paste a [`plant/2`](../reference/plant.md) file, or describe the
-   common shapes step by step: the PV's coupling, the battery and its inverter, a load on
-   a hybrid's DC bus, the grid's limits. A file without `timezone` takes Home
-   Assistant's. Grid-charge and export windows, hold rules and meters with another sign
-   are set in the file ([Describe a plant](describe-plant.md)); the options edit it
+1. **The plant.** Describe it step by step (the PV's coupling, the battery and its
+   inverter, a load on a hybrid's DC bus, the grid's limits; the battery's capacity is
+   the Energy dashboard's where it states one), paste a [`plant/2`](../reference/plant.md)
+   file, or import a plant file and a [`sources/1`](../configuration/data-sources.md)
+   file together, as the `microgrid` command reads them (its `home_assistant` section
+   is not needed). A file without `timezone` takes Home Assistant's. Grid-charge and
+   export windows and hold rules are optional: without them the plant runs as the
+   model's default ([Describe a plant](describe-plant.md)); the options edit the file
    later.
-2. **What the plant measures.** An entity for each of the plant's meters (by the
-   plant's meter names, each in the sign the plant file states), the battery's SOC, the
-   house load, and the plant's mode: an entity and the modes that run the dispatch the
-   model describes, or *the plant always runs as modelled*. An SOC entity that states
-   no unit is read in the unit chosen here (percent or a fraction). A heartbeat entity,
-   one that reports every few seconds, is optional: with one, a silent connection to
-   the plant reads as unknown, not as steady values, in the valuation, the live value
-   and the battery's ledger.
-3. **Prices**, from one of the [price readers](../configuration/data-sources.md):
-   TariffKit, Nord Pool, Amber Electric, Tibber, Octopus Energy, ENTSO-E, OpenEI, or
-   any entity's attribute or action's response that holds rows of prices. A source that
-   publishes no export price takes a fixed `export` price per kWh.
-4. **The PV forecast** (for a plant with PV): Solcast, or an entity's or action's rows.
-5. **The load forecast**: EMHASS, Predbat, or an entity's or action's rows.
+2. **What the plant measures.** An entity for each of the plant's meters, the battery's
+   SOC, the house load, and the plant's mode: an entity and the modes that run the
+   dispatch the model describes, or *the plant always runs as modelled*. Where the
+   Energy dashboard names power sensors for the grid, the PV and the battery, and the
+   battery's SOC, they are proposed. An SOC entity that states no unit is read in the
+   unit chosen here (percent or a fraction). A heartbeat entity, one that reports every
+   few seconds, is optional: with one, a silent connection to the plant reads as
+   unknown, not as steady values, in the valuation, the live value and the battery's
+   ledger.
+
+   **Each meter's sign is checked.** The Energy dashboard's power sensors have a
+   convention of their own: its grid sensor is positive importing, as the plant's grid
+   meter is, and its battery sensor positive discharging, the opposite of the plant's
+   battery meter, which reads positive charging. Then what the recorder kept of the
+   chosen entities over the last two days says which way each reads: PV and a DC-bus
+   load are positive, the battery charging raises the SOC, and the grid closes the
+   balance with the house. Where either says a meter reads the other way from the plant
+   file, the setup names the meter and why, and offers to set its sign. The recorder's
+   check needs a day of hours with every meter recorded; with less, it is skipped.
+3. **Prices.** The price integrations installed are found and proposed first:
+   TariffKit, Nord Pool (one per area), Amber Electric, Tibber, Octopus Energy,
+   ENTSO-E and OpenEI. One that publishes an export price (TariffKit, Amber's feed-in
+   channel, Octopus's export meter, OpenEI's sell rate) is read at once; one that does
+   not asks for a fixed export price per kWh. Any entity's attribute or action's
+   response that holds rows of prices can be set up by hand
+   ([the readers](../configuration/data-sources.md)).
+4. **The PV forecast** (for a plant with PV): Solcast is found (its daily forecasts as
+   far as they are enabled: day 3 on are disabled by default, and a 48-hour horizon
+   needs it), or an entity's or action's rows.
+5. **The load forecast**: EMHASS (its load forecast sensor, `p_load_forecast` under any
+   prefix or suffix, with its step) and Predbat are found, or an entity's or action's
+   rows.
 
 Each section is checked by the library as the command checks a `sources/1` file, every
-problem named, and each source is read once before its step is accepted. The options
-edit each part and the engine's settings ([`engine/2`](../reference/engine.md): the
-horizon, the slot, the inputs' longest ages, the live smoothing, how a battery kWh is
-priced).
+problem named, and each source is read once before its step is accepted. A plant is set
+up once: a second entry for the same grid meter is refused. The options edit each part
+and the engine's settings ([`engine/2`](../reference/engine.md): the horizon, the slot,
+the inputs' longest ages, the live smoothing, how a battery kWh is priced).
 
 ## The entities
 

@@ -4,8 +4,9 @@
       "user": {
         "title": "Describe the plant",
         "menu_options": {
+          "plant_build": "Describe it step by step",
           "plant_paste": "Paste a plant file (plant/2)",
-          "plant_build": "Describe it step by step"
+          "files": "Import a plant file and a sources file (as the microgrid command reads them)"
         }
       },
       "plant_paste": {
@@ -51,7 +52,7 @@
       },
       "measured": {
         "title": "What the plant measures",
-        "description": "The entities the plant's meters read, each in the sign its plant file states.",
+        "description": "The entities the plant's meters read. Where the Energy dashboard names power sensors, they are proposed. Each meter's sign is checked against what the recorder kept.",
         "data": {
           "soc": "Battery state of charge",
           "house": "House load",
@@ -224,13 +225,32 @@
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
         }
+      },
+      "files": {
+        "title": "Plant and sources files",
+        "description": "The plant/2 file and the sources/1 file, as TOML. The sources file's home_assistant section is not needed here.",
+        "data": {
+          "name": "Name",
+          "plant_toml": "Plant file (plant/2, TOML)",
+          "sources_toml": "Sources file (sources/1, TOML)"
+        }
+      },
+      "signs": {
+        "title": "Meter signs",
+        "description": "These meters read the other way from the plant file:\n{notes}\n\nSet their signs in the plant file?",
+        "data": {
+          "apply": "Apply these signs"
+        }
       }
     },
     "error": {
       "invalid": "The configuration has problems:\n{problems}",
       "read_failed": "The source could not be read: {error}"
     },
-    "abort": {}
+    "abort": {
+      "already_configured": "This plant is already set up (its grid meter is another entry's).",
+      "already_in_progress": "This plant is already being set up."
+    }
   },
   "options": {
     "step": {
@@ -254,7 +274,7 @@
       },
       "measured": {
         "title": "What the plant measures",
-        "description": "The entities the plant's meters read, each in the sign its plant file states.",
+        "description": "The entities the plant's meters read. Where the Energy dashboard names power sensors, they are proposed. Each meter's sign is checked against what the recorder kept.",
         "data": {
           "soc": "Battery state of charge",
           "house": "House load",
@@ -440,11 +460,19 @@
           "smoothing_seconds": "Live smoothing (seconds)",
           "battery_value": "A battery kWh's price"
         }
+      },
+      "signs": {
+        "title": "Meter signs",
+        "description": "These meters read the other way from the plant file:\n{notes}\n\nSet their signs in the plant file?",
+        "data": {
+          "apply": "Apply these signs"
+        }
       }
     },
     "error": {
       "invalid": "The configuration has problems:\n{problems}",
-      "read_failed": "The source could not be read: {error}"
+      "read_failed": "The source could not be read: {error}",
+      "plant_taken": "This grid meter is another entry's plant."
     }
   },
   "selector": {
