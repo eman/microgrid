@@ -34,7 +34,14 @@ from .const import (
     DOMAIN,
     SOURCE_SECTIONS,
 )
-from .discovery import EnergyFound, changed_signs, energy_found, proposed_signs, with_signs
+from .discovery import (
+    EnergyFound,
+    battery_measured,
+    changed_signs,
+    energy_found,
+    proposed_signs,
+    with_signs,
+)
 from .found_sources import Found, found_sources
 from .hass_api import HassApi
 from .setup import (
@@ -386,14 +393,8 @@ _BATTERY_SCHEMA = vol.Schema(
         vol.Required("capacity_kwh"): _number(),
         vol.Required("charge_kw"): _number(),
         vol.Required("discharge_kw"): _number(),
-        vol.Optional("eta_charge"): _number(),
-        vol.Optional("eta_discharge"): _number(),
         vol.Optional("reserve_soc"): _number(),
-        vol.Optional("wear_charge_per_kwh"): _number(),
-        vol.Optional("wear_discharge_per_kwh"): _number(),
         vol.Optional("ac_rating_kw"): _number(),
-        vol.Optional("standby_kw"): _number(),
-        vol.Optional("working_kw"): _number(),
     }
 )
 _GRID_SCHEMA = vol.Schema(
@@ -785,11 +786,16 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._battery = user_input
             return await self.async_step_plant_grid()
-        capacity = (await energy_found(self.hass)).capacity_kwh
+        seen = await battery_measured(self.hass, await energy_found(self.hass))
+        proposed = {
+            "capacity_kwh": seen.capacity_kwh,
+            "charge_kw": seen.charge_kw,
+            "discharge_kw": seen.discharge_kw,
+        }
         return self.async_show_form(
             step_id="plant_battery",
             data_schema=self.add_suggested_values_to_schema(
-                _BATTERY_SCHEMA, {"capacity_kwh": capacity} if capacity else {}
+                _BATTERY_SCHEMA, {k: v for k, v in proposed.items() if v is not None}
             ),
         )
 

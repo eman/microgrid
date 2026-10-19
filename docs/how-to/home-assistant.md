@@ -21,9 +21,15 @@ Then *Settings → Devices & services → Add integration → Microgrid*.
 The setup proposes what Home Assistant already knows; each step shows its proposal to
 keep or change. It asks, in order:
 
-1. **The plant.** Describe it step by step (the PV's coupling, the battery and its
-   inverter, a load on a hybrid's DC bus, the grid's limits; the battery's capacity is
-   the Energy dashboard's where it states one), paste a [`plant/2`](../reference/plant.md)
+1. **The plant.** Describe it step by step: the PV's coupling, a load on a hybrid's DC
+   bus, the grid's limits, and the battery as its specification gives it (its capacity,
+   charge and discharge limits, reserve and inverter rating). Where the Energy
+   dashboard names the battery's sensors, what they recorded over the last week is
+   proposed: the capacity from the energy it took against its SOC (or the dashboard's
+   own), and the most it was seen to charge and discharge, which may be under its
+   limit. Its efficiencies and the inverter's draw take the library's defaults (the
+   plant file sets them; `microgrid fit-battery` fits them from a plant's meters). Or
+   paste a [`plant/2`](../reference/plant.md)
    file, or import a plant file and a [`sources/1`](../configuration/data-sources.md)
    file together, as the `microgrid` command reads them (its `home_assistant` section
    is not needed). A file without `timezone` takes Home Assistant's. Grid-charge and

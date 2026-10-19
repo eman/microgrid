@@ -29,18 +29,13 @@
       },
       "plant_battery": {
         "title": "The battery",
+        "description": "Its capacity and limits, as its specification gives them. Where the Energy dashboard names the battery's sensors, what they recorded over the last week is proposed: the capacity from the energy it took against its SOC (or the dashboard's own), and the most it was seen to charge and discharge, which may be under its limit. Its efficiencies and the inverter's draw take the library's defaults; the plant file sets them.",
         "data": {
           "capacity_kwh": "Usable capacity (kWh)",
           "charge_kw": "Charge limit (kW)",
           "discharge_kw": "Discharge limit (kW)",
-          "eta_charge": "Charge efficiency",
-          "eta_discharge": "Discharge efficiency",
           "reserve_soc": "Reserve (0–1)",
-          "wear_charge_per_kwh": "Wear per kWh charged",
-          "wear_discharge_per_kwh": "Wear per kWh discharged",
-          "ac_rating_kw": "Inverter AC rating (kW)",
-          "standby_kw": "Inverter standby draw (kW)",
-          "working_kw": "Inverter working draw (kW)"
+          "ac_rating_kw": "Inverter AC rating (kW)"
         }
       },
       "plant_grid": {
