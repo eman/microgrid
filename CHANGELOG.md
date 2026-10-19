@@ -4,6 +4,8 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-18
+
 The first version, under the MIT license.
 
 ### Added (library)
