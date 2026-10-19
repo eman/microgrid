@@ -4,6 +4,13 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-19
+
+### Changed (documentation)
+
+- The documentation's home page says it prices the next kWh, without "not the average
+  one"; why not the average is in *The marginal price*.
+
 ## [0.1.3] - 2026-10-18
 
 ### Changed (documentation)

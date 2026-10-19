@@ -28,7 +28,7 @@ defined in [Outputs](concepts/outputs.md).
 
 ## How it prices
 
-- **It prices the next kWh, not the average one.** A kWh used in a slot comes from one
+- **It prices the next kWh.** A kWh used in a slot comes from one
   source: PV that would have been exported, the grid, or the battery. The price is that
   source's: the export given up, the import, or the battery's energy. The price follows
   the plant forward to find out which, slot by slot.
