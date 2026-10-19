@@ -24,9 +24,9 @@ __all__ = ["BatterySeen", "battery_seen", "rounded"]
 PEAK_SLOT: Final = timedelta(minutes=5)
 #: The SOC must travel this far (a fraction, summed) for the capacity to be told.
 _TRAVEL_MIN: Final = 0.3
-#: An hour that moved less than this (kWh) says nothing of the capacity: the SOC's
-#: steps would dominate.
-_HOUR_MIN_KWH: Final = 0.3
+#: An hour that moved less than this (kWh) is idle: what the SOC does then (a drift,
+#: a standby draw the meter does not see) is not the meter's energy.
+_IDLE_KWH: Final = 0.05
 _HOUR: Final = timedelta(hours=1)
 
 
@@ -61,7 +61,11 @@ def battery_seen(
 def _capacity(
     power: Series[float], soc: Series[float], start: datetime, end: datetime
 ) -> float | None:
-    """The energy moved over the SOC's travel, in the hours the two agree."""
+    """The energy moved over the SOC's travel. An hour the SOC did not step keeps its
+    energy: over a run of hours the SOC's travel adds up to the true change within one
+    step, so leaving such hours out would leave energy out and no travel. An hour where
+    the meter and the SOC go opposite ways (a step from the hour before, a meter out of
+    step) is left out."""
     starts = _slots(start, end, _HOUR)
     kw = means(power, starts, _HOUR)
     moved: list[float] = []
@@ -71,8 +75,8 @@ def _capacity(
         if mean is None or before is None or after is None:
             continue
         kwh, change = mean * 1.0, after - before
-        if abs(kwh) < _HOUR_MIN_KWH or kwh * change <= 0:
-            continue  # idle, or the meter and the SOC disagree (a step mid-hour)
+        if abs(kwh) < _IDLE_KWH or kwh * change < 0:
+            continue
         moved.append(abs(kwh))
         travelled.append(abs(change))
     total = math.fsum(travelled)

@@ -1,6 +1,7 @@
 """A battery's rating as its meters show it: a synthetic 10 kWh battery, 95 % each way,
 charging at 3 kW and discharging at 2 kW."""
 
+import math
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -45,6 +46,24 @@ def test_without_the_soc_or_its_travel_no_capacity() -> None:
     assert battery_seen(power, None, T0, T0 + 24 * HOUR).capacity_kwh is None
     still = Series.of([(T0, 0.5)], known_until=T0 + 24 * HOUR)
     assert battery_seen(power, still, T0, T0 + 24 * HOUR).capacity_kwh is None
+
+
+def test_a_coarse_soc_on_a_slow_large_battery() -> None:
+    """A 40 kWh battery whose SOC reports in 1 % steps, discharging then charging at
+    0.3 kW for a day each: most hours the SOC does not step, and their energy counts."""
+    capacity = 40.0
+    power: list[tuple[datetime, float]] = []
+    soc: list[tuple[datetime, float]] = []
+    stored = 0.9 * capacity
+    for minute in range(48 * 60):
+        at = T0 + timedelta(minutes=minute)
+        kw = -0.3 if minute < 24 * 60 else 0.3
+        power.append((at, kw))
+        soc.append((at, math.floor(stored / capacity * 100) / 100))
+        stored += kw / 60
+    end = T0 + 48 * HOUR
+    seen = battery_seen(Series.of(power, known_until=end), Series.of(soc, known_until=end), T0, end)
+    assert seen.capacity_kwh == pytest.approx(capacity, rel=0.05)
 
 
 def test_limits_round_up() -> None:

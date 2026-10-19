@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import tomllib
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any
 
 import probatio as vol
@@ -19,10 +19,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 
+from microgrid.cli.seen import BatterySeen, rounded
 from microgrid.cli.sources import SourceError
 from microgrid.cli.sources.entity import Kind
 from microgrid.cli.sources.read import read_forecast
-from microgrid.plant import Plant
+from microgrid.plant import Battery, Plant
 
 from .const import (
     CONF_ENGINE,
@@ -361,6 +362,8 @@ def built_plant(
                 "reserve_soc",
                 "wear_charge_per_kwh",
                 "wear_discharge_per_kwh",
+                "dc_charge_kw",
+                "dc_discharge_kw",
             )
             if battery.get(key) is not None
         }
@@ -397,6 +400,51 @@ _BATTERY_SCHEMA = vol.Schema(
         vol.Optional("ac_rating_kw"): _number(),
     }
 )
+#: A battery on a hybrid's DC bus with anything else on it: its own DC limits and the
+#: hybrid's AC rating too (``plant/2``).
+_BATTERY_SHARED_BUS_SCHEMA = _BATTERY_SCHEMA.extend(
+    {
+        vol.Required("dc_charge_kw"): _number(),
+        vol.Required("dc_discharge_kw"): _number(),
+        vol.Required("ac_rating_kw"): _number(),
+    }
+)
+#: The battery's conversion where the plant file gives none: the library's.
+_ETA = {
+    field.name: field.default
+    for field in fields(Battery)
+    if field.name.startswith("eta_") and isinstance(field.default, float)
+}
+
+
+def battery_proposed(seen: BatterySeen, *, on_dc_bus: bool) -> dict[str, float]:
+    """The battery step's proposals from what was seen, rounded. On a hybrid's DC bus
+    the sensor reads DC, and the battery's ``charge_kw`` and ``discharge_kw`` are
+    AC-side: the AC drawn to charge is the DC over the conversion, the AC given in
+    discharge the DC through it (the library's default efficiencies); its own DC limits
+    are as seen."""
+    charge, discharge = seen.charge_kw, seen.discharge_kw
+    ac = (
+        BatterySeen(
+            None if charge is None else charge / _ETA["eta_charge"],
+            None if discharge is None else discharge * _ETA["eta_discharge"],
+            seen.capacity_kwh,
+        )
+        if on_dc_bus
+        else seen
+    )
+    shown = rounded(ac)
+    proposed = {
+        "capacity_kwh": shown.capacity_kwh,
+        "charge_kw": shown.charge_kw,
+        "discharge_kw": shown.discharge_kw,
+    }
+    if on_dc_bus:
+        dc = rounded(seen)
+        proposed |= {"dc_charge_kw": dc.charge_kw, "dc_discharge_kw": dc.discharge_kw}
+    return {key: value for key, value in proposed.items() if value is not None}
+
+
 _GRID_SCHEMA = vol.Schema(
     {vol.Optional("import_limit_kw"): _number(), vol.Optional("export_limit_kw"): _number()}
 )
@@ -786,16 +834,14 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._battery = user_input
             return await self.async_step_plant_grid()
+        on_bus = self._choices.get("battery") == "dc_bus"
+        shared = on_bus and (self._choices.get("pv") == "dc" or self._choices.get("dc_load"))
         seen = await battery_measured(self.hass, await energy_found(self.hass))
-        proposed = {
-            "capacity_kwh": seen.capacity_kwh,
-            "charge_kw": seen.charge_kw,
-            "discharge_kw": seen.discharge_kw,
-        }
         return self.async_show_form(
             step_id="plant_battery",
             data_schema=self.add_suggested_values_to_schema(
-                _BATTERY_SCHEMA, {k: v for k, v in proposed.items() if v is not None}
+                _BATTERY_SHARED_BUS_SCHEMA if shared else _BATTERY_SCHEMA,
+                battery_proposed(seen, on_dc_bus=on_bus),
             ),
         )
 

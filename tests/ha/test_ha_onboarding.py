@@ -35,6 +35,7 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
 )
 
 from ha_fixtures import HOUR, NOW, REPO, energy_prefs, plant_data, set_sources
+from microgrid.cli.seen import BatterySeen
 
 LOADS = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -491,3 +492,50 @@ async def test_the_builder_asks_only_what_a_battery_states(hass: HomeAssistant) 
     }
     capacity = next(key for key in schema.schema if str(key) == "capacity_kwh")
     assert capacity.description == {"suggested_value": 12.5}
+
+
+def test_a_dc_bus_batterys_limits_are_proposed_ac_side() -> None:
+    """Its sensor reads DC; its charge and discharge limits are AC-side: the AC drawn
+    to charge is more than the DC stored, the AC given in discharge less."""
+    seen = BatterySeen(3.0, 2.0, 10.04)
+    assert config_flow.battery_proposed(seen, on_dc_bus=False) == {
+        "capacity_kwh": 10.0,
+        "charge_kw": 3.0,
+        "discharge_kw": 2.0,
+    }
+    assert config_flow.battery_proposed(seen, on_dc_bus=True) == {
+        "capacity_kwh": 10.0,
+        "charge_kw": 3.2,  # 3.0 / 0.94, up
+        "discharge_kw": 1.9,  # 2.0 x 0.94, up
+        "dc_charge_kw": 3.0,
+        "dc_discharge_kw": 2.0,
+    }
+
+
+@LOADS
+async def test_a_dc_bus_shared_with_pv_asks_the_batterys_dc_limits(hass: HomeAssistant) -> None:
+    """DC-coupled PV on the hybrid's bus with the battery: the plant needs the
+    battery's own DC limits and the hybrid's AC rating, and the builder asks them."""
+    set_sources(hass)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    flow = result["flow_id"]
+    await hass.config_entries.flow.async_configure(flow, {"next_step_id": "plant_build"})
+    result = await hass.config_entries.flow.async_configure(
+        flow, {"name": "Home", "pv": "dc", "battery": "dc_bus", "dc_load": False}
+    )
+    schema = result["data_schema"]
+    assert schema is not None
+    assert {"dc_charge_kw", "dc_discharge_kw", "ac_rating_kw"} <= {str(k) for k in schema.schema}
+    result = await hass.config_entries.flow.async_configure(
+        flow,
+        {
+            "capacity_kwh": 10,
+            "charge_kw": 5,
+            "discharge_kw": 5,
+            "dc_charge_kw": 5,
+            "dc_discharge_kw": 5,
+            "ac_rating_kw": 6,
+        },
+    )
+    result = await hass.config_entries.flow.async_configure(flow, {})
+    assert result["step_id"] == "measured", result.get("description_placeholders")

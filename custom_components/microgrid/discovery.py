@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from microgrid.cli.history import LotsError
-from microgrid.cli.seen import BatterySeen, battery_seen, rounded
+from microgrid.cli.seen import BatterySeen, battery_seen
 from microgrid.cli.signs import Signs, meter_signs
 from microgrid.engine.series import Sample, Series, means, slot_floor
 from microgrid.engine.units import UnitError, convert
@@ -90,8 +90,9 @@ async def energy_found(hass: HomeAssistant) -> EnergyFound:
 
 async def battery_measured(hass: HomeAssistant, found: EnergyFound) -> BatterySeen:
     """The battery's rating as the Energy dashboard's battery sensor (positive
-    discharging) and SOC show it over the last :data:`SEEN_OVER`, rounded; its capacity
-    the dashboard's where it states one. Nothing without the recorder or the sensor."""
+    discharging) and SOC show it over the last :data:`SEEN_OVER`, where the sensor
+    reads (the battery's DC side on a hybrid); its capacity the dashboard's where it
+    states one. Nothing without the recorder or the sensor."""
     unknown = BatterySeen(None, None, found.capacity_kwh)
     if found.battery is None or "recorder" not in hass.config.components:
         return unknown
@@ -123,7 +124,7 @@ async def battery_measured(hass: HomeAssistant, found: EnergyFound) -> BatterySe
         return battery_seen(charging, soc, start, end)
 
     try:
-        seen = rounded(await run_in_recorder(hass, read))
+        seen = await run_in_recorder(hass, read)
     except (LotsError, UnitError, ValueError) as err:
         _LOGGER.debug("battery not measured: %s", err)
         return unknown
