@@ -16,6 +16,9 @@ Each user-visible change, under the release it ships in.
 - A fixed `export` price per kWh, for prices whose source publishes the import alone
   (an entity's or an action's rows, and the named readers with no export price).
   Import and export prices from separate entities are split at each change of either.
+- A forecast read from a source has each interval that starts or ends inside an engine
+  slot split where the slots begin, so quarter-hour prices are priced at 10-minute
+  slots, each slot at the mean of its pieces.
 - `microgrid.cli.sources.api.HomeAssistantApi`: what a reader asks of Home Assistant.
   The readers take any client that answers it, and import without an HTTP client.
   `read.read_forecast`, `read.source_name`, `config.forecast_source` and
