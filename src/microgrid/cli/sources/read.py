@@ -62,6 +62,7 @@ from microgrid.cli.sources.config import (
 )
 from microgrid.cli.sources.fetch import fetch_measured
 from microgrid.cli.sources.home_assistant import HaClient
+from microgrid.cli.sources.rows import on_slots
 from microgrid.engine import Engine, EngineConfig, Inputs
 from microgrid.engine.ledger import Lots
 from microgrid.engine.series import Forecast, Sample, Series
@@ -116,8 +117,21 @@ async def read_forecast(
     """One issue of the forecast ``source`` names (a ``sources/1`` section's source), read
     now from ``client``: any :class:`~microgrid.cli.sources.api.HomeAssistantApi`.
     ``tz`` is the plant's, for a source that publishes local times without an offset.
-    Raises :class:`~microgrid.cli.sources.SourceError` (or ``ValueError``) naming why it
-    cannot."""
+    Each interval is split where one of the engine's slots begins
+    (:func:`~microgrid.cli.sources.rows.on_slots`). Raises
+    :class:`~microgrid.cli.sources.SourceError` (or ``ValueError``) naming why it cannot."""
+    return on_slots(await _read(client, source, kind, engine, now, tz=tz), engine.slot)
+
+
+async def _read(
+    client: HomeAssistantApi,
+    source: object,
+    kind: entity.Kind,
+    engine: EngineConfig,
+    now: datetime,
+    *,
+    tz: ZoneInfo,
+) -> Forecast[Any]:
     if isinstance(source, NordPool):
         return await nordpool.fetch_prices(client, source, now=now)
     if isinstance(source, Amber):
@@ -125,9 +139,9 @@ async def read_forecast(
     if isinstance(source, Tibber):
         return await tibber.fetch_prices(client, source, now=now, horizon=engine.horizon)
     if isinstance(source, Octopus):
-        return await octopus.fetch_prices(client, source)
+        return await octopus.fetch_prices(client, source, now=now)
     if isinstance(source, Entsoe):
-        return await entsoe.fetch_prices(client, source)
+        return await entsoe.fetch_prices(client, source, now=now)
     if isinstance(source, OpenEI):
         return await openei.fetch_prices(client, source, now=now, horizon=engine.horizon, tz=tz)
     if isinstance(source, ActionForecast):

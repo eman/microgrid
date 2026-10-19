@@ -22,9 +22,13 @@ from microgrid.engine.series import Forecast, Interval
 __all__ = [
     "RowError",
     "number",
+    "on_slots",
     "rows_forecast",
     "time",
 ]
+
+#: Where the engine's slots are counted from (every slot length divides an hour).
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class RowError(SourceError):
@@ -59,6 +63,31 @@ def number(value: object, where: str) -> float:
     if not math.isfinite(found):
         raise RowError(f"{where}: not finite: {value!r}")
     return found
+
+
+def on_slots[V](forecast: Forecast[V], slot: timedelta) -> Forecast[V]:
+    """``forecast`` with each interval that starts or ends inside an engine slot of
+    ``slot`` split where the slots begin, so the engine averages its pieces within each
+    slot (a quarter hour, at 10-minute slots). A value is a mean over its interval, so
+    each piece keeps it. An interval on the slots' boundaries is kept whole."""
+
+    def on_grid(moment: datetime) -> bool:
+        return (moment - _EPOCH) % slot == timedelta(0)
+
+    pieces: list[Interval[V]] = []
+    for interval in forecast.intervals:
+        if on_grid(interval.start) and on_grid(interval.end):
+            pieces.append(interval)
+            continue
+        start = interval.start
+        boundary = _EPOCH + ((start - _EPOCH) // slot + 1) * slot
+        while boundary < interval.end:
+            pieces.append(Interval(start, boundary, interval.value))
+            start, boundary = boundary, boundary + slot
+        pieces.append(Interval(start, interval.end, interval.value))
+    if len(pieces) == len(forecast.intervals):
+        return forecast
+    return Forecast(tuple(pieces), forecast.issued_at, forecast.source)
 
 
 def rows_forecast(

@@ -264,8 +264,8 @@ type PriceSource = (
     | EntityForecast
     | ActionForecast
 )
-type PvSource = Solcast | EntityForecast
-type LoadSource = Emhass | Predbat | EntityForecast
+type PvSource = Solcast | EntityForecast | ActionForecast
+type LoadSource = Emhass | Predbat | EntityForecast | ActionForecast
 
 
 @dataclass(frozen=True, slots=True)
@@ -369,8 +369,8 @@ PRICE_READERS: Final[Mapping[str, type]] = {
 
 _FORECASTS: Final = {
     "prices": tuple(PRICE_READERS),
-    "pv_forecast": ("solcast", "entity"),
-    "load_forecast": ("emhass", "predbat", "entity"),
+    "pv_forecast": ("solcast", "entity", "action"),
+    "load_forecast": ("emhass", "predbat", "entity", "action"),
 }
 _KEYS: Final = {
     "prices": ({"import", "export"}, {"import"}),
@@ -662,7 +662,8 @@ class _Reader:
     _ROW_SETTINGS: Final = {"start_key", "end_key", "period_minutes", "keys", "unit", "export"}
 
     def entity(self, name: str, data: Mapping[str, object]) -> EntityForecast | None:
-        self.unknown(data, {"from", "entity", "attribute", *self._ROW_SETTINGS}, name)
+        settings = self._ROW_SETTINGS if name == "prices" else self._ROW_SETTINGS - {"export"}
+        self.unknown(data, {"from", "entity", "attribute", *settings}, name)
         entity = self.text(data, "entity", name, required=True)
         attribute = self.text(data, "attribute", name, required=True)
         start_key, end_key, period, keys, unit, export = self.rows(name, data)
@@ -671,7 +672,8 @@ class _Reader:
         return EntityForecast(entity, attribute, start_key, end_key, period, keys, unit, export)
 
     def action(self, name: str, data: Mapping[str, object]) -> ActionForecast | None:
-        self.unknown(data, {"from", "action", "data", "rows", *self._ROW_SETTINGS}, name)
+        settings = self._ROW_SETTINGS if name == "prices" else self._ROW_SETTINGS - {"export"}
+        self.unknown(data, {"from", "action", "data", "rows", *settings}, name)
         action = self.text(data, "action", name, required=True)
         domain, _, service = (action or "").partition(".")
         if action is not None and not (domain and service):
@@ -682,6 +684,8 @@ class _Reader:
             payload = {}
         path = self.names(data, "rows", name)
         start_key, end_key, period, keys, unit, export = self.rows(name, data)
+        if name != "prices" and unit is None:
+            self.fail(f"{name}.unit", "is required: the values' power unit (W, kW, MW)")
         if not (domain and service):
             return None
         return ActionForecast(

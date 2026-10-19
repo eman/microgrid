@@ -79,6 +79,14 @@ Power is W, kW or MW. A price unit is a currency, as a code or a symbol, before 
 `/kWh` or `/MWh` (`EUR/MWh`, `USD/kWh`, `¢/kWh`); per-Wh and per-MWh prices become per
 kWh, and the currency is never converted ([Currency](../concepts/units.md#currency)).
 
+## Intervals and the engine's slots
+
+A forecast's intervals may be longer or shorter than the engine's
+[slot](../concepts/slots-horizon.md). An interval that starts or ends inside a slot (a
+quarter hour, at 10-minute slots) is split where the slots begin, and the engine takes
+the mean of the pieces in each slot, weighted by length: a slot from 10:10 to 10:20 is
+priced half at the 10:00 quarter hour's price and half at the 10:15 one's.
+
 ## Any entity: `from = "entity"`
 
 Any input can come from an entity whose attribute holds **a list of rows, each with a
@@ -115,7 +123,7 @@ such an action whose response holds **rows as an entity's attribute would**.
 | `data` | `{}` | the action's fields |
 | `rows` | `[]` | the keys leading from the response to the list of rows (`["forecast", "rows"]` for `{"forecast": {"rows": [...]}}`) |
 | `start_key`, `end_key`, `period_minutes`, `keys`, `export` | as for an entity | the rows |
-| `unit` | none | the values' unit: required for power; for prices, none means per kWh |
+| `unit` | none | the values' unit: required for PV and loads (W, kW, MW); for prices, none means per kWh |
 
 The response carries no time it was made, so the issue time is the time of the read.
 The action is called with the same fields at every read: one whose fields name dates
@@ -181,7 +189,8 @@ per kWh with GST.
 | `export` | none | a fixed export price per kWh, without the feed-in entities |
 
 The feed-in channel's price is what an exported kWh earns, so a negative one costs to
-export. The issue time is the earlier `last_updated` of the entities read. A dataset
+export. Amber states each interval's start one second past its boundary (`20:00:01`);
+the reader takes the minute. The issue time is the earlier `last_updated` of the entities read. A dataset
 saved from it says `AUD/kWh`.
 
 ### Prices: `from = "tibber"`
@@ -209,8 +218,8 @@ day (`event.octopus_energy_electricity_<serial>_<mpan>_current_day_rates`, and
 | `export_entities` | none | the export meter's rates entities (`..._export_current_day_rates`): the export price |
 | `export` | none | a fixed export price per kWh, without the export entities |
 
-Today's entity must hold rates; tomorrow's may not yet. The issue time is the earliest
-`last_updated` of the entities that held rates. A dataset saved from it says `GBP/kWh`.
+Today's entity must hold rates; tomorrow's may not yet. An entity changes only when a
+day's rates are published, so the issue time is the time of the read. A dataset saved from it says `GBP/kWh`.
 
 ### Prices: `from = "entsoe"`
 
@@ -223,7 +232,8 @@ the prices its own settings make: its price modifier and VAT.
 | `entity` | required | the average-price entity |
 | `export` | required | the export price per kWh |
 
-Each row lasts until the next starts. The issue time is the entity's `last_updated`.
+Each row lasts until the next starts. The entity changes only when the day's prices are
+published, so the issue time is the time of the read.
 
 ### Prices: `from = "openei"`
 

@@ -36,10 +36,10 @@ from microgrid.cli.sources.openei import OpenEIError
 from microgrid.cli.sources.openei import parse_prices as parse_openei
 from microgrid.cli.sources.prices import PriceJoinError, join_prices
 from microgrid.cli.sources.read import read_forecast, source_name
-from microgrid.cli.sources.rows import RowError, rows_forecast
+from microgrid.cli.sources.rows import RowError, on_slots, rows_forecast
 from microgrid.cli.sources.tibber import TibberError
 from microgrid.cli.sources.tibber import parse_prices as parse_tibber
-from microgrid.engine.series import Forecast, Interval, Price
+from microgrid.engine.series import Forecast, Interval, Price, align, price_mean
 
 NOW = datetime(2026, 10, 22, 10, 3, tzinfo=UTC)
 H = timedelta(hours=1)
@@ -166,6 +166,44 @@ def test_import_and_export_join_where_both_are_known() -> None:
         join_prices(imports, later)
 
 
+def test_quarter_hours_are_split_at_the_engines_slots() -> None:
+    quarters = Forecast(
+        tuple(
+            Interval(
+                _at(10) + i * timedelta(minutes=15), _at(10) + (i + 1) * timedelta(minutes=15), v
+            )
+            for i, v in enumerate(
+                [Price(0.2, 0.0), Price(0.5, 0.0), Price(0.3, 0.0), Price(0.1, 0.0)]
+            )
+        ),
+        NOW,
+        "q",
+    )
+    ten = timedelta(minutes=10)
+    split = on_slots(quarters, ten)
+    assert [(i.start.minute, i.end.minute) for i in split.intervals] == [
+        (0, 10),
+        (10, 15),
+        (15, 20),
+        (20, 30),
+        (30, 40),
+        (40, 45),
+        (45, 50),
+        (50, 0),
+    ]
+    starts = [_at(10) + i * ten for i in range(6)]
+    priced = align(split, starts, ten, mean=price_mean)
+    assert [None if p is None else round(p.p_import, 9) for p in priced] == [
+        0.2,
+        0.35,
+        0.5,
+        0.3,
+        0.2,
+        0.1,
+    ]
+    assert on_slots(quarters, timedelta(minutes=15)) is quarters  # nothing to split
+
+
 # -- the named readers ---------------------------------------------------------------------
 
 
@@ -251,7 +289,12 @@ def test_amber_joins_the_general_channel_with_feed_in() -> None:
         (0.33, 0.07),
         (0.29, -0.01),
     ]
-    assert found.intervals[0].start == datetime(2026, 10, 22, 10, 0, 1, tzinfo=UTC)
+    # Amber's 20:00:01 start is its interval's 20:00 boundary: the intervals tile
+    assert [i.start for i in found.intervals] == [_at(10), _at(10, 30), _at(11)]
+    assert align(found, [_at(10), _at(10, 10)], timedelta(minutes=10), mean=price_mean) == (
+        Price(0.31, 0.08),
+        Price(0.31, 0.08),
+    )
     assert found.issued_at == datetime(2026, 10, 22, 10, 0, 4, tzinfo=UTC)
 
 
@@ -318,7 +361,7 @@ def test_octopus_reads_each_meters_rates_and_tomorrows_when_published() -> None:
         exp: _octopus("m2", 22, [0.15, 0.15]),
     }
     config = Octopus((imp, imp_next), (exp,))
-    found = parse_octopus(states, config)
+    found = parse_octopus(states, config, now=NOW)
     # midnight in London on 22 October (BST) is 23:00 UTC on the 21st
     assert _prices(found) == [
         (
@@ -335,9 +378,9 @@ def test_octopus_reads_each_meters_rates_and_tomorrows_when_published() -> None:
         ),
     ]
     states[imp_next] = _octopus("m1", 23, [0.30])
-    longer = asyncio.run(fetch_octopus(FakeApi(states), config))
+    longer = asyncio.run(fetch_octopus(FakeApi(states), config, now=NOW))
     assert len(longer.intervals) == 2  # the export holds no rate for tomorrow
-    fixed = parse_octopus(states, Octopus((imp, imp_next), export=0.15))
+    fixed = parse_octopus(states, Octopus((imp, imp_next), export=0.15), now=NOW)
     assert len(fixed.intervals) == 3
 
 
@@ -353,12 +396,12 @@ def test_entsoe_prices_in_its_unit_with_space_separated_times() -> None:
             ],
         },
     }
-    found = parse_entsoe(state, Entsoe("entsoe.average_price", export=0.01))
+    found = parse_entsoe(state, Entsoe("entsoe.average_price", export=0.01), now=NOW)
     assert _prices(found) == [
         (_at(10), _at(11), 0.21, 0.01),
         (_at(11), _at(12), 0.19, 0.01),
     ]
-    assert found.issued_at == datetime(2026, 10, 22, 9, 58, tzinfo=UTC)
+    assert found.issued_at == NOW  # the prices the integration holds now
 
 
 def _openei(change: str, *, adjustment: str = "0.012") -> dict[str, dict[str, Any]]:
@@ -431,6 +474,38 @@ def test_an_entitys_import_alone_takes_a_fixed_export() -> None:
     }
     found = parse_forecast(state, config, "prices")
     assert found.intervals[0].value == Price(0.3, 0.04)
+
+
+def test_an_action_reads_a_power_forecast_in_its_unit() -> None:
+    config = forecast_source(
+        "load_forecast",
+        {
+            "from": "action",
+            "action": "forecaster.load",
+            "rows": ["rows"],
+            "keys": {"value": "w"},
+            "unit": "W",
+        },
+    )
+    assert isinstance(config, ActionForecast)
+    response = {
+        "rows": [{"start": "2026-10-22T10:00:00Z", "end": "2026-10-22T10:30:00Z", "w": 1500}]
+    }
+    found = parse_response(response, config, "load_forecast", now=NOW)
+    assert found.intervals[0].value == 1.5
+    with pytest.raises(SourcesConfigError, match=r"pv_forecast\.unit: is required"):
+        forecast_source("pv_forecast", {"from": "action", "action": "a.b", "keys": {"value": "w"}})
+    with pytest.raises(SourcesConfigError, match=r"load_forecast\.export: is not a setting"):
+        forecast_source(
+            "load_forecast",
+            {
+                "from": "entity",
+                "entity": "e",
+                "attribute": "a",
+                "keys": {"value": "w"},
+                "export": 1,
+            },
+        )
 
 
 def test_a_price_section_names_every_problem() -> None:

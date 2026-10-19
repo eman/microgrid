@@ -3,10 +3,12 @@
 Each channel has a price entity, the interval under way, with ``start_time``,
 ``end_time`` and ``per_kwh`` among its attributes, and a forecast entity whose
 ``forecasts`` attribute lists the intervals after it, each with the same keys. Prices
-are dollars per kWh with GST. The feed-in channel's ``per_kwh`` is what an exported kWh
-earns (the integration turns Amber's sign around), so it is the export price; without
-it the export is the configuration's fixed ``export``. The forecast is issued at the
-earlier ``last_updated`` of the entities read.
+are dollars per kWh with GST. Amber states an interval's start one second past its
+boundary (``20:00:01`` to ``20:30:00``); the reader takes the start's minute. The
+feed-in channel's ``per_kwh`` is what an exported kWh earns (the integration turns
+Amber's sign around), so it is the export price; without it the export is the
+configuration's fixed ``export``. The forecast is issued at the earlier
+``last_updated`` of the entities read.
 """
 
 from __future__ import annotations
@@ -45,6 +47,13 @@ def _attributes(state: object, entity: str) -> dict[str, object]:
     return attributes
 
 
+def _on_the_minute(row: object, where: str) -> object:
+    if not isinstance(row, dict) or "start_time" not in row:
+        return row  # the row reader names what is missing
+    start = time(row["start_time"], where).replace(second=0, microsecond=0)
+    return {**row, "start_time": start}
+
+
 def parse_channel(price: object, forecast: object, *, names: tuple[str, str]) -> Forecast[float]:
     """One channel's price now and its forecast, as per-kWh values in time order."""
     price_entity, forecast_entity = names
@@ -53,6 +62,7 @@ def parse_channel(price: object, forecast: object, *, names: tuple[str, str]) ->
     if not isinstance(forecasts, list):
         raise AmberError(f"{forecast_entity}: no forecasts list")
     rows.extend(forecasts)
+    rows = [_on_the_minute(row, forecast_entity) for row in rows]
     issued = min(
         time(_state(state, entity).get("last_updated"), f"{entity} last_updated")
         for state, entity in ((price, price_entity), (forecast, forecast_entity))
