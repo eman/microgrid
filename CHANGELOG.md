@@ -6,6 +6,12 @@ Each user-visible change, under the release it ships in.
 
 ### Added
 
+- The Home Assistant integration's plant builder asks only what a battery's
+  specification states (capacity, limits, reserve, inverter rating) and proposes it
+  from the Energy dashboard's battery sensors over the last week; its efficiencies and
+  the inverter's draw take the library's defaults.
+- `microgrid.cli.seen`: a battery's rating as its meters show it (the most it charged
+  and discharged, its capacity from the energy it took against its SOC).
 - The Home Assistant integration's setup proposes what Home Assistant already knows: the
   price, PV and load forecast integrations installed (TariffKit, Nord Pool, Amber,
   Tibber, Octopus, ENTSO-E, OpenEI, Solcast, EMHASS, Predbat), each read at once where

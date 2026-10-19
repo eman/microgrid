@@ -3,7 +3,7 @@ dataset's), prices and forecasts as entities' rows, and the plant's meters."""
 
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from custom_components.microgrid.const import (
     CONF_ENGINE,
@@ -14,6 +14,7 @@ from custom_components.microgrid.const import (
     CONF_PV_FORECAST,
     DOMAIN,
 )
+from homeassistant.components.energy.data import EnergyPreferencesUpdate, async_get_manager
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -123,3 +124,44 @@ def entity_id(
     found_id = registry.async_get_entity_id(platform, DOMAIN, f"{found.entry_id}_{key}")
     assert found_id is not None, key
     return found_id
+
+
+async def energy_prefs(hass: HomeAssistant, *, capacity: float | None = None) -> None:
+    """The Energy dashboard naming the grid's, the PV's and the battery's power sensors
+    and the battery's SOC (and capacity)."""
+    battery: dict[str, Any] = {
+        "type": "battery",
+        "stat_energy_from": "sensor.battery_out",
+        "stat_energy_to": "sensor.battery_in",
+        "stat_rate": "sensor.battery_power",
+        "stat_soc": "sensor.battery_soc",
+    }
+    if capacity is not None:
+        battery["capacity"] = capacity
+    prefs: dict[str, Any] = {
+        "device_consumption": [],
+        "energy_sources": [
+            {
+                "type": "grid",
+                "stat_energy_from": "sensor.grid_in",
+                "stat_energy_to": None,
+                "stat_cost": None,
+                "entity_energy_price": None,
+                "number_energy_price": None,
+                "stat_compensation": None,
+                "entity_energy_price_export": None,
+                "number_energy_price_export": None,
+                "cost_adjustment_day": 0.0,
+                "stat_rate": "sensor.grid_power",
+            },
+            {
+                "type": "solar",
+                "stat_energy_from": "sensor.pv_energy",
+                "stat_rate": "sensor.pv_power",
+                "config_entry_solar_forecast": None,
+            },
+            battery,
+        ],
+    }
+    manager = await async_get_manager(hass)
+    await manager.async_update(cast("EnergyPreferencesUpdate", prefs))

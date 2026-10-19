@@ -119,7 +119,7 @@ async def test_a_plant_built_step_by_step(hass: HomeAssistant) -> None:
     result = await _step(
         hass,
         flow,
-        {"capacity_kwh": 12, "charge_kw": 6, "discharge_kw": 6, "standby_kw": 0.03},
+        {"capacity_kwh": 12, "charge_kw": 6, "discharge_kw": 6, "ac_rating_kw": 5},
     )
     assert result["step_id"] == "plant_grid"
     result = await _step(hass, flow, {"export_limit_kw": 5})
@@ -133,7 +133,7 @@ async def test_a_plant_built_step_by_step(hass: HomeAssistant) -> None:
     plant = result["data"][CONF_PLANT]
     assert plant["pv"] == [{"name": "pv", "coupling": "ac"}]
     assert plant["battery"]["connection"] == "dc_bus"
-    assert plant["hybrid"] == {"standby_kw": 0.03}
+    assert plant["hybrid"] == {"ac_rating_kw": 5.0}
     assert plant["grid"] == {"export_limit_kw": 5.0}
 
 

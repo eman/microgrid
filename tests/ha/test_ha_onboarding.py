@@ -16,6 +16,7 @@ from custom_components.microgrid.const import (
     DOMAIN,
 )
 from custom_components.microgrid.discovery import (
+    battery_measured,
     changed_signs,
     energy_found,
     read_signs,
@@ -24,7 +25,6 @@ from custom_components.microgrid.discovery import (
 from custom_components.microgrid.found_sources import EXPORT, found_sources
 from custom_components.microgrid.setup import read_plant
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.components.energy.data import async_get_manager
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -34,7 +34,8 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
     async_wait_recording_done,
 )
 
-from ha_fixtures import HOUR, NOW, REPO, plant_data, set_sources
+from ha_fixtures import HOUR, NOW, REPO, energy_prefs, plant_data, set_sources
+from microgrid.cli.seen import BatterySeen
 
 LOADS = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -225,41 +226,7 @@ async def test_a_source_found_that_needs_an_export_price_asks_for_it(
 @LOADS
 async def test_the_energy_dashboard_proposes_what_is_measured(hass: HomeAssistant) -> None:
     set_sources(hass)
-    manager = await async_get_manager(hass)
-    await manager.async_update(
-        {
-            "device_consumption": [],
-            "energy_sources": [
-                {
-                    "type": "grid",
-                    "stat_energy_from": "sensor.grid_in",
-                    "stat_energy_to": None,
-                    "stat_cost": None,
-                    "entity_energy_price": None,
-                    "number_energy_price": None,
-                    "stat_compensation": None,
-                    "entity_energy_price_export": None,
-                    "number_energy_price_export": None,
-                    "cost_adjustment_day": 0.0,
-                    "stat_rate": "sensor.grid_power",
-                },
-                {
-                    "type": "solar",
-                    "stat_energy_from": "sensor.pv_energy",
-                    "stat_rate": "sensor.pv_power",
-                    "config_entry_solar_forecast": None,
-                },
-                {
-                    "type": "battery",
-                    "stat_energy_from": "sensor.battery_out",
-                    "stat_energy_to": "sensor.battery_in",
-                    "stat_rate": "sensor.battery_power",
-                    "stat_soc": "sensor.battery_soc",
-                    "capacity": 12.5,
-                },
-            ],
-        }
-    )
+    await energy_prefs(hass, capacity=12.5)
     found = await energy_found(hass)
     assert (found.pv, found.grid, found.battery, found.soc) == (
         "sensor.pv_power",
@@ -469,3 +436,106 @@ def test_emhass_names_its_own_key() -> None:
     section = config_flow.section_from_form(CONF_LOAD_FORECAST, "emhass", form)
     assert section == {"from": "emhass", **form}
     assert config_flow.form_values(CONF_LOAD_FORECAST, "emhass", section) == form
+
+
+async def test_the_battery_is_measured_from_the_recorder(
+    recorder_mock: object, hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A day of the Energy dashboard's battery sensor (positive discharging): 3 kW
+    charging and 2 kW discharging, a 10 kWh battery at 95 % each way."""
+    start = NOW.replace(minute=0) - 30 * HOUR
+    stored = 2.0
+    for hour in range(25):
+        at = start + hour * HOUR
+        kw = 3.0 if 10 <= at.hour < 12 else -2.0 if 18 <= at.hour < 20 else 0.0
+        freezer.move_to(at)
+        hass.states.async_set(
+            "sensor.battery_power", f"{-kw * 1000:.0f}", {"unit_of_measurement": "W"}
+        )
+        hass.states.async_set(
+            "sensor.battery_soc", f"{stored * 10:.3f}", {"unit_of_measurement": "%"}
+        )
+        await async_wait_recording_done(hass)
+        stored += kw * 0.95 if kw > 0 else kw / 0.95
+    freezer.move_to(start + 26 * HOUR)
+    await energy_prefs(hass)
+    seen = await battery_measured(hass, await energy_found(hass))
+    assert (seen.charge_kw, seen.discharge_kw) == (3.0, 2.0)
+    assert seen.capacity_kwh == pytest.approx(10.0, rel=0.03)
+    # The dashboard's own capacity, where it states one, stands.
+    await energy_prefs(hass, capacity=12.5)
+    seen = await battery_measured(hass, await energy_found(hass))
+    assert seen.capacity_kwh == 12.5
+
+
+@LOADS
+async def test_the_builder_asks_only_what_a_battery_states(hass: HomeAssistant) -> None:
+    """Its capacity and limits (proposed where the Energy dashboard says), its reserve
+    and the inverter's rating: never its efficiencies or draws."""
+    set_sources(hass)
+    await energy_prefs(hass, capacity=12.5)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    flow = result["flow_id"]
+    await hass.config_entries.flow.async_configure(flow, {"next_step_id": "plant_build"})
+    result = await hass.config_entries.flow.async_configure(
+        flow, {"name": "Home", "pv": "ac", "battery": "dc_bus", "dc_load": False}
+    )
+    assert result["step_id"] == "plant_battery"
+    schema = result["data_schema"]
+    assert schema is not None
+    assert {str(key) for key in schema.schema} == {
+        "capacity_kwh",
+        "charge_kw",
+        "discharge_kw",
+        "reserve_soc",
+        "ac_rating_kw",
+    }
+    capacity = next(key for key in schema.schema if str(key) == "capacity_kwh")
+    assert capacity.description == {"suggested_value": 12.5}
+
+
+def test_a_dc_bus_batterys_limits_are_proposed_ac_side() -> None:
+    """Its sensor reads DC; its charge and discharge limits are AC-side: the AC drawn
+    to charge is more than the DC stored, the AC given in discharge less."""
+    seen = BatterySeen(3.0, 2.0, 10.04)
+    assert config_flow.battery_proposed(seen, on_dc_bus=False) == {
+        "capacity_kwh": 10.0,
+        "charge_kw": 3.0,
+        "discharge_kw": 2.0,
+    }
+    assert config_flow.battery_proposed(seen, on_dc_bus=True) == {
+        "capacity_kwh": 10.0,
+        "charge_kw": 3.2,  # 3.0 / 0.94, up
+        "discharge_kw": 1.9,  # 2.0 x 0.94, up
+        "dc_charge_kw": 3.0,
+        "dc_discharge_kw": 2.0,
+    }
+
+
+@LOADS
+async def test_a_dc_bus_shared_with_pv_asks_the_batterys_dc_limits(hass: HomeAssistant) -> None:
+    """DC-coupled PV on the hybrid's bus with the battery: the plant needs the
+    battery's own DC limits and the hybrid's AC rating, and the builder asks them."""
+    set_sources(hass)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    flow = result["flow_id"]
+    await hass.config_entries.flow.async_configure(flow, {"next_step_id": "plant_build"})
+    result = await hass.config_entries.flow.async_configure(
+        flow, {"name": "Home", "pv": "dc", "battery": "dc_bus", "dc_load": False}
+    )
+    schema = result["data_schema"]
+    assert schema is not None
+    assert {"dc_charge_kw", "dc_discharge_kw", "ac_rating_kw"} <= {str(k) for k in schema.schema}
+    result = await hass.config_entries.flow.async_configure(
+        flow,
+        {
+            "capacity_kwh": 10,
+            "charge_kw": 5,
+            "discharge_kw": 5,
+            "dc_charge_kw": 5,
+            "dc_discharge_kw": 5,
+            "ac_rating_kw": 6,
+        },
+    )
+    result = await hass.config_entries.flow.async_configure(flow, {})
+    assert result["step_id"] == "measured", result.get("description_placeholders")

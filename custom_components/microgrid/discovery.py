@@ -18,8 +18,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from microgrid.cli.history import LotsError
+from microgrid.cli.seen import BatterySeen, battery_seen
 from microgrid.cli.signs import Signs, meter_signs
-from microgrid.engine.series import means, slot_floor
+from microgrid.engine.series import Sample, Series, means, slot_floor
 from microgrid.engine.units import UnitError, convert
 from microgrid.plant import Plant
 
@@ -27,6 +28,8 @@ from .recorder_history import RecorderHistory, run_in_recorder
 
 _LOGGER = logging.getLogger(__name__)
 
+#: How far back the battery's meters are read for its rating.
+SEEN_OVER: Final = timedelta(days=7)
 #: How far back the meters are read to tell their signs.
 SIGNS_OVER: Final = timedelta(days=2)
 #: Hours with every meter recorded the signs need: a day, so the PV, the battery's
@@ -83,6 +86,51 @@ async def energy_found(hass: HomeAssistant) -> EnergyFound:
         soc=_entity(hass, battery.get("stat_soc")) if battery else None,
         capacity_kwh=float(capacity) if isinstance(capacity, int | float) else None,
     )
+
+
+async def battery_measured(hass: HomeAssistant, found: EnergyFound) -> BatterySeen:
+    """The battery's rating as the Energy dashboard's battery sensor (positive
+    discharging) and SOC show it over the last :data:`SEEN_OVER`, where the sensor
+    reads (the battery's DC side on a hybrid); its capacity the dashboard's where it
+    states one. Nothing without the recorder or the sensor."""
+    unknown = BatterySeen(None, None, found.capacity_kwh)
+    if found.battery is None or "recorder" not in hass.config.components:
+        return unknown
+    entities = [found.battery, *([found.soc] if found.soc else [])]
+    history = RecorderHistory(hass, {entity: _unit(hass, entity) for entity in entities})
+    end = slot_floor(dt_util.utcnow(), _HOUR)
+    start = end - SEEN_OVER
+    battery, soc_entity = found.battery, found.soc
+    soc_unit = (_unit(hass, soc_entity) if soc_entity else None) or "%"
+
+    async def read() -> BatterySeen:
+        power = await history.power_series(battery, start, end, carry_in=_HOUR)
+        charging = Series(  # the plant's convention: positive charging
+            tuple(Sample(s.at, None if s.value is None else -s.value) for s in power.samples),
+            power.known_until,
+        )
+        soc = None
+        if soc_entity:
+            raw = await history.numeric_series(soc_entity, start, end, carry_in=_HOUR)
+            soc = Series(
+                tuple(
+                    Sample(
+                        s.at, None if s.value is None else convert(s.value, soc_unit, "fraction")
+                    )
+                    for s in raw.samples
+                ),
+                raw.known_until,
+            )
+        return battery_seen(charging, soc, start, end)
+
+    try:
+        seen = await run_in_recorder(hass, read)
+    except (LotsError, UnitError, ValueError) as err:
+        _LOGGER.debug("battery not measured: %s", err)
+        return unknown
+    if found.capacity_kwh is not None:
+        return BatterySeen(seen.charge_kw, seen.discharge_kw, found.capacity_kwh)
+    return seen
 
 
 def _unit(hass: HomeAssistant, entity: str) -> str | None:
