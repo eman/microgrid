@@ -61,7 +61,7 @@ defined in [Outputs](concepts/outputs.md).
 
 | Part | What |
 |---|---|
-| `microgrid.plant` | the plant model: the plant described as data (`plant/2`) and projected slot by slot. It stands alone, without the price code. |
+| `microgrid.plant` | the plant model: the plant described as data (`plant/2`) and projected slot by slot |
 | `microgrid.engine` | the price model, the battery's [lots](methodology/lots.md), the series and units its inputs arrive in, the checks against the meters |
 | `microgrid.cli` | the `microgrid` command: the library run on a dataset (`dataset/1`) of files, or on a site's live sources (`sources/1`; the `sources` extra). |
 | `examples/dataset` | one synthetic week of an example plant, with the outputs the repository's tests check the command against. |

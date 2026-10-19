@@ -1,4 +1,4 @@
-"""The plant model and its simulator, on their own (``microgrid.plant``).
+"""The plant model and its simulator (``microgrid.plant``).
 
 A plant is described by a :class:`PlantConfig` (``plant/2``), given as data.
 :class:`Plant` is that plant behind the port

@@ -1,6 +1,6 @@
 """microgrid: a solar + battery plant modelled, and its marginal energy prices.
 
-- :mod:`microgrid.plant`: the plant model and its simulator, on their own: a plant
+- :mod:`microgrid.plant`: the plant model and its simulator: a plant
   described as data (``plant/2``), projected slot by slot.
 - :mod:`microgrid.engine`: the marginal prices, a client of the plant model.
 - :mod:`microgrid.cli`: the ``microgrid`` command, the library run on a dataset's files
