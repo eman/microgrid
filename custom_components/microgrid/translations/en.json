@@ -117,7 +117,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
@@ -168,7 +168,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
@@ -219,7 +219,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
@@ -320,7 +320,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
@@ -371,7 +371,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."
@@ -422,7 +422,7 @@
         },
         "data_description": {
           "export": "For a source that publishes no export price: what an exported kWh earns.",
-          "rows": "For a response like {\"forecast\": {\"rows\": [...]}}: forecast.rows",
+          "rows": "The rows' path in the response, its keys joined by dots: forecast.rows where the rows are under forecast, then rows",
           "unit": "The values' unit: W, kW or MW for power; a currency per kWh or per MWh for prices.",
           "next_structure_time": "The OpenEI entity holding when the rate structure next changes. Prices end there.",
           "entities": "Today's first."

@@ -24,6 +24,9 @@ jobs:
         with:
           category: integration
           comment: false
+          # Topics list a repository in HACS's default store; a custom repository
+          # installs without them.
+          ignore: topics
 
   hassfest:
     runs-on: ubuntu-latest
