@@ -69,6 +69,14 @@ def set_sources(hass: HomeAssistant, *, soc: str = "55") -> None:
     hass.states.async_set("sensor.battery_soc", soc, {"unit_of_measurement": "%"})
 
 
+def beat(hass: HomeAssistant) -> None:
+    """The house load reports again (it stands for the heartbeat): the measured series
+    are vouched for up to now."""
+    hass.states.async_set(
+        "sensor.house_power", "800", {"unit_of_measurement": "W"}, force_update=True
+    )
+
+
 def options() -> dict[str, Any]:
     return {
         CONF_ENGINE: {},

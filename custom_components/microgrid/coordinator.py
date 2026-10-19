@@ -1,8 +1,13 @@
 """The valuations and the live value, kept current: one coordinator per config entry.
 
 - **Forecasts** are read from their sources every :data:`~.const.FORECAST_READ`, each
-  read one issue received then (the library's readers, through :class:`~.hass_api.HassApi`).
-- **Measured** entities feed series as their states change (:mod:`.telemetry`).
+  read one issue received then (the library's readers, through :class:`~.hass_api.HassApi`);
+  a source that failed is read again at the next minute (an integration loaded after
+  this one, at Home Assistant's start).
+- **Measured** entities feed series as their states change (:mod:`.telemetry`), vouched
+  for while the heartbeat (the configured one, else the house load) reports: silent
+  longer than :data:`~microgrid.cli.history.TELEMETRY`, the series end where it last
+  reported and the live value names ``telemetry``.
 - **A valuation** is made every :data:`~.const.DECIDE_EVERY` (``Engine.value``, in the
   executor) and published when the issue policy says (:mod:`.issuing`): on a new
   forecast basis, or on its refresh timer. A valuation with no price for the slot under
@@ -10,7 +15,8 @@
 - **The live value** is run every :data:`~.const.LIVE_EVERY` from the measured series
   and the published valuation (``Engine.live``).
 - **The battery's lots** are the ledger's (:mod:`.lots`), run over the recorder's
-  history, where the plant has a battery and the configuration names its meters.
+  history, where the plant has a battery and the configuration names its meters, in the
+  recorder's executor.
 """
 
 from __future__ import annotations
@@ -29,13 +35,13 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from microgrid.cli.history import LotsError
+from microgrid.cli.history import TELEMETRY, LotsError
 from microgrid.cli.inputs import no_dc_forecast
 from microgrid.cli.sources import SourceError
 from microgrid.cli.sources.read import read_forecast, source_name
 from microgrid.engine import Assessment, Engine, Inputs, LiveValue, Valuation, ValuationKind
 from microgrid.engine.ledger import Lots
-from microgrid.engine.series import Forecast, Price, Sample, Series, slot_floor
+from microgrid.engine.series import Forecast, Price, Sample, Series
 
 from .const import (
     CONF_LOAD_FORECAST,
@@ -51,11 +57,14 @@ from .const import (
 from .hass_api import HassApi
 from .issuing import Basis, IssuePolicy, LastIssue, Reason, decide
 from .lots import LotsTracker, bindings
-from .recorder_history import RecorderHistory
+from .recorder_history import RecorderHistory, run_in_recorder
 from .setup import Setup, read_setup
 from .telemetry import Telemetry
 
 _LOGGER = logging.getLogger(__name__)
+
+#: The live value's cause where the heartbeat is silent.
+SILENT = "telemetry"
 
 type MicrogridConfigEntry = ConfigEntry[MicrogridCoordinator]
 
@@ -113,7 +122,9 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         measured = self.setup.measured
         self.telemetry = Telemetry(measured, plant.meters) if measured is not None else None
         self._received: dict[str, list[Sample[Forecast[Any]]]] = {}
-        self._read_at: datetime | None = None
+        #: When each source was last read; a source that failed is not, so it is read
+        #: again at the next refresh.
+        self._read_at: dict[str, datetime] = {}
         self._read_problems: dict[str, str] = {}
         self._read_sources: dict[str, str] = {}
         self._failures: dict[str, int] = {}
@@ -121,9 +132,17 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         self._published: Published | None = None
         self._live: LiveValue | None = None
         self._lots: LotsTracker | None = None
+        self._lots_history: RecorderHistory | None = None
         self._lots_problem: str | None = None
         self._lots_tried: datetime | None = None
         self.last_valuation: Valuation | None = None
+        # A repair raised before a reload is this entry's no longer: it is raised again
+        # if the source keeps failing.
+        self._clear_issues()
+
+    def _clear_issues(self) -> None:
+        for name in _KINDS:
+            ir.async_delete_issue(self.hass, DOMAIN, f"{self.config_entry.entry_id}_{name}")
 
     # -- lifecycle -----------------------------------------------------------------------
 
@@ -144,6 +163,20 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
                 async_track_state_change_event(self.hass, entities, self._state_changed)
             )
         entry.async_on_unload(async_track_time_interval(self.hass, self._live_tick, LIVE_EVERY))
+        entry.async_on_unload(self._clear_issues)
+
+    def vouched_until(self, now: datetime) -> datetime:
+        """Until when the measured series are known: ``now`` while the heartbeat reports,
+        else when it last did."""
+        measured = self.setup.measured
+        beat = None if measured is None else measured.heartbeat or measured.house
+        if beat is None:
+            return now
+        state = self.hass.states.get(beat)
+        if state is None:
+            return now - TELEMETRY
+        reported = min(state.last_reported, now)
+        return now if now - reported <= TELEMETRY else reported
 
     @callback
     def _state_changed(self, event: Event[EventStateChangedData]) -> None:
@@ -161,9 +194,12 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
 
     async def _read_forecasts(self, now: datetime) -> None:
         plant = self.setup.plant
-        problems: dict[str, str] = {}
-        used: dict[str, str] = {}
+        problems = self._read_problems
+        used = self._read_sources
         for name, kind in _KINDS.items():
+            read_at = self._read_at.get(name)
+            if read_at is not None and now - read_at < FORECAST_READ:
+                continue
             if name == CONF_PV_FORECAST and not plant.has_pv:
                 continue
             if name == CONF_PV_FORECAST and plant.pv_per_array:
@@ -182,15 +218,16 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
                 )
             except (SourceError, ValueError) as err:
                 problems[name] = str(err)
+                used.pop(name, None)
                 self._failed(name, str(err))
                 continue
             self._read_again(name)
+            problems.pop(name, None)
             used[name] = source_name(source)
+            self._read_at[name] = now
             kept = self._received.setdefault(name, [])
             kept.append(Sample(now, forecast))
             del kept[: -(LOAD_ISSUES if name == CONF_LOAD_FORECAST else 1)]
-        self._read_problems, self._read_sources = problems, used
-        self._read_at = now
 
     def _failed(self, name: str, why: str) -> None:
         count = self._failures.get(name, 0) + 1
@@ -213,6 +250,11 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
     def _read_again(self, name: str) -> None:
         if self._failures.pop(name, 0) >= FAILURES_FOR_ISSUE:
             ir.async_delete_issue(self.hass, DOMAIN, f"{self.config_entry.entry_id}_{name}")
+
+    def _unit(self, entity: str) -> str | None:
+        state = self.hass.states.get(entity)
+        unit = None if state is None else state.attributes.get("unit_of_measurement")
+        return None if unit is None else str(unit)
 
     def _series(self, name: str, now: datetime) -> Series[Forecast[Any]] | None:
         kept = self._received.get(name)
@@ -257,17 +299,32 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
                 return
             try:
                 bound = bindings(
-                    plant, measured, import_price=import_price, export_price=export_price
+                    plant,
+                    measured,
+                    import_price=import_price,
+                    export_price=export_price,
+                    soc_unit=self._unit(measured.soc) if measured.soc else None,
                 )
             except LotsError as err:
                 self._lots_problem = str(err)
                 return
-            self._lots = LotsTracker(RecorderHistory(self.hass), bound, slot)
-        if self._lots_tried is not None and slot_floor(now, slot) == self._lots_tried:
-            return  # one try a slot
-        self._lots_tried = slot_floor(now, slot)
+            self._lots_history = RecorderHistory(self.hass, {})
+            self._lots = LotsTracker(self._lots_history, bound, slot)
+        tracker, history = self._lots, self._lots_history
+        assert history is not None
+        due = tracker.due(now)
+        if due == tracker.through or due == self._lots_tried:
+            return  # stepped through it, or tried it: one try a slot
+        self._lots_tried = due
+        # The units as their entities state them now, read here on the event loop.
+        assert measured is not None  # the tracker is made from it
+        history.units = {
+            entity: self._unit(entity)
+            for entity in (*measured.meters.values(), measured.house)
+            if entity is not None
+        }
         try:
-            await self._lots.update(now)
+            await run_in_recorder(self.hass, lambda: tracker.update(now))
         except (LotsError, ValueError) as err:
             self._lots_problem = str(err)
             return
@@ -298,20 +355,21 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             load=self._series(CONF_LOAD_FORECAST, now),
             dc_load=Series((Sample(now, dc),), now) if dc is not None else None,
             soc=(
-                telemetry.soc.series(now)
+                telemetry.soc.series(now, self.vouched_until(now))
                 if has_battery and telemetry is not None and telemetry.soc is not None
                 else None
             ),
             dispatch_as_modelled=(
-                telemetry.dispatch_series(now) if has_battery and telemetry is not None else None
+                telemetry.dispatch_series(now, self.vouched_until(now))
+                if has_battery and telemetry is not None
+                else None
             ),
             lots=lots,
         )
 
     async def _async_update_data(self) -> Snapshot:
         now = dt_util.utcnow()
-        if self._read_at is None or now - self._read_at >= FORECAST_READ:
-            await self._read_forecasts(now)
+        await self._read_forecasts(now)
         await self._update_lots(now)
         inputs = self._inputs(now)
         valuation = await self.hass.async_add_executor_job(
@@ -356,17 +414,24 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             return Inputs(prices=None, lots=lots)
         telemetry.prune(now, self.setup.engine.smoothing_window)
         has_battery = plant.storage is not None
+        until = self.vouched_until(now)
         meters = {
             name: found
             for name, buffer in telemetry.meters.items()
-            if (found := buffer.series(now)) is not None
+            if (found := buffer.series(now, until)) is not None
         }
         return Inputs(
             prices=None,
-            soc=telemetry.soc.series(now) if has_battery and telemetry.soc is not None else None,
-            dispatch_as_modelled=telemetry.dispatch_series(now) if has_battery else None,
+            soc=(
+                telemetry.soc.series(now, until)
+                if has_battery and telemetry.soc is not None
+                else None
+            ),
+            dispatch_as_modelled=telemetry.dispatch_series(now, until) if has_battery else None,
             meters=meters,
-            measured_load=telemetry.house.series(now) if telemetry.house is not None else None,
+            measured_load=(
+                telemetry.house.series(now, until) if telemetry.house is not None else None
+            ),
             lots=lots,
         )
 
@@ -380,6 +445,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
                 at=now,
                 valuation=published.valuation if published is not None else None,
                 valid_until=published.valid_until if published is not None else None,
+                external=(SILENT,) if self.vouched_until(now) < now else (),
             )
         )
         # Not async_set_updated_data: that puts the next valuation off by a whole

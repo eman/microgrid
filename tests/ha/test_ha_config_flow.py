@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from ha_fixtures import NOW, REPO, entry, set_sources
+from ha_fixtures import NOW, REPO, entry, options, plant_data, set_sources
 
 PLANT_TOML = (REPO / "examples" / "dataset" / "plant.toml").read_text(encoding="utf-8")
 
@@ -171,11 +171,55 @@ async def test_the_options_edit_the_engine_and_the_plant(hass: HomeAssistant) ->
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"plant_toml": text.replace("12.0", "10.0")}
     )
+    assert result["step_id"] == "measured"  # what it measures follows the plant
+    assert found.data[CONF_PLANT]["battery"]["capacity_kwh"] == 12.0  # not saved yet
+    result = await hass.config_entries.options.async_configure(result["flow_id"], MEASURED)
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert found.data[CONF_PLANT]["battery"]["capacity_kwh"] == 10.0
     await hass.async_block_till_done()  # the reload the change starts
     assert found.runtime_data.setup.plant.battery.capacity_kwh == 10.0
     assert await hass.config_entries.async_unload(found.entry_id)
+
+
+async def test_the_options_add_a_battery_with_its_soc(hass: HomeAssistant) -> None:
+    """A plant without a battery gains one: the measured step that follows asks for its
+    SOC, and the two are saved together."""
+    set_sources(hass)
+    plant = plant_data()
+    del plant["battery"]
+    plant.pop("hybrid", None)
+    plant.pop("dispatch", None)  # its windows are the battery's
+    found = MockConfigEntry(
+        domain=DOMAIN,
+        title="Home",
+        data={CONF_PLANT: plant},
+        options={
+            **options(),
+            CONF_MEASURED: {
+                "from": "home_assistant",
+                "house": "sensor.house_power",
+                "meters": {"pv": "sensor.pv_power", "grid": "sensor.grid_power"},
+            },
+        },
+    )
+    found.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(found.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "plant"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"plant_toml": PLANT_TOML}
+    )
+    assert result["step_id"] == "measured"
+    schema = result["data_schema"]
+    assert schema is not None and "soc" in schema.schema
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**MEASURED, "soc_unit": "fraction"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert found.data[CONF_PLANT]["battery"]["capacity_kwh"] == 12.0
+    assert found.options[CONF_MEASURED]["soc"] == "sensor.battery_soc"
+    assert found.options[CONF_MEASURED]["soc_unit"] == ""
 
 
 def test_a_form_becomes_its_section() -> None:

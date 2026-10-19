@@ -63,7 +63,8 @@
           "meter_grid": "Grid meter",
           "meter_battery": "Battery meter",
           "meter_dc_load": "DC-bus load meter",
-          "meter_consumption": "Consumption meter"
+          "meter_consumption": "Consumption meter",
+          "soc_unit": "The SOC's unit, where its entity states none"
         },
         "data_description": {
           "house": "The load the plant serves, as it meters it: the live value's.",
@@ -265,7 +266,8 @@
           "meter_grid": "Grid meter",
           "meter_battery": "Battery meter",
           "meter_dc_load": "DC-bus load meter",
-          "meter_consumption": "Consumption meter"
+          "meter_consumption": "Consumption meter",
+          "soc_unit": "The SOC's unit, where its entity states none"
         },
         "data_description": {
           "house": "The load the plant serves, as it meters it: the live value's.",
@@ -494,6 +496,12 @@
       "options": {
         "stored_cost": "What its energy cost (stored cost)",
         "replacement": "What will make it up (replacement)"
+      }
+    },
+    "soc_unit": {
+      "options": {
+        "%": "Percent (0 to 100)",
+        "fraction": "A fraction (0 to 1)"
       }
     }
   },

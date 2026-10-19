@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from custom_components.microgrid.issuing import Basis, IssuePolicy, LastIssue, Reason, decide
 from custom_components.microgrid.lots import SETTLE, LotsTracker
-from custom_components.microgrid.recorder_history import RecorderHistory
+from custom_components.microgrid.recorder_history import RecorderHistory, run_in_recorder
 from custom_components.microgrid.telemetry import Telemetry
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
@@ -107,6 +107,9 @@ async def test_the_tracker_keeps_the_lots_the_offline_ledger_gives() -> None:
         s: round(a.kwh, 9) for s, a in want.held.items()
     }
     assert tracker.current(last + 4 * slot) is None  # stale after three slots
+    # Due once the slot under way has ended and settled, whatever second a refresh runs.
+    assert tracker.due(last + slot) == last
+    assert tracker.due(last + slot + SETTLE) == last + slot
 
 
 async def test_the_recorder_reads_as_recorded_history(
@@ -121,9 +124,12 @@ async def test_the_recorder_reads_as_recorded_history(
     freezer.move_to(T0 + 10 * MINUTE)
     hass.states.async_set("sensor.pv", "unavailable", {"unit_of_measurement": "W"})
     await async_wait_recording_done(hass)
-    history = RecorderHistory(hass)
+    history = RecorderHistory(hass, {"sensor.pv": "W"})
     start, end = T0 + MINUTE, T0 + 20 * MINUTE
-    power = await history.power_series("sensor.pv", start, end, carry_in=timedelta(days=1))
+    # As the coordinator reads it: off the event loop, in the recorder's executor.
+    power = await run_in_recorder(
+        hass, lambda: history.power_series("sensor.pv", start, end, carry_in=timedelta(days=1))
+    )
     assert [(s.at, s.value) for s in power.samples] == [
         (start, 1.0),  # the state in force at the start
         (T0 + 5 * MINUTE, 2.0),

@@ -29,8 +29,10 @@ The setup asks, in order:
 2. **What the plant measures.** An entity for each of the plant's meters (by the
    plant's meter names, each in the sign the plant file states), the battery's SOC, the
    house load, and the plant's mode: an entity and the modes that run the dispatch the
-   model describes, or *the plant always runs as modelled*. A heartbeat entity, one that
-   reports every few seconds, is optional; without it the house load stands for one.
+   model describes, or *the plant always runs as modelled*. An SOC entity that states
+   no unit is read in the unit chosen here (percent or a fraction). A heartbeat entity,
+   one that reports every few seconds, is optional; without it the house load stands
+   for one.
 3. **Prices**, from one of the [price readers](../configuration/data-sources.md):
    TariffKit, Nord Pool, Amber Electric, Tibber, Octopus Energy, ENTSO-E, OpenEI, or
    any entity's attribute or action's response that holds rows of prices. A source that
@@ -91,11 +93,14 @@ scheduler](scheduler.md) says which output answers which question.
 
 ## How it runs
 
-- **Forecasts** are read every 5 minutes, each read one issue received then. The load
-  forecast keeps its recent issues, so a forecaster that publishes from the next half
-  hour still covers the slot under way.
+- **Forecasts** are read every 5 minutes, each read one issue received then; a source
+  that failed (an integration not loaded yet, at Home Assistant's start) is read again
+  the next minute. The load forecast keeps its recent issues, so a forecaster that
+  publishes from the next half hour still covers the slot under way.
 - **The measured entities** feed series as their states change. A state that is not a
-  number (`unavailable`) is a gap.
+  number (`unavailable`) is a gap. While the heartbeat is silent longer than 3 minutes
+  the series end where it last reported: the SOC and the meters read as unknown, and
+  the live value names `telemetry`.
 - **A valuation** is made every minute and published on a new forecast basis (new
   prices, a new PV or load forecast, a change in which inputs are usable) or every 10
   minutes, and holds for 30 minutes. A valuation with no price for the slot under way is
@@ -103,7 +108,7 @@ scheduler](scheduler.md) says which output answers which question.
 - **The live value** runs every 30 seconds from the measured series and the published
   valuation.
 - **The battery's lots** are the library's ledger, run in over the recorder's last two
-  days when the integration starts, then stepped each slot, over the plant's meters,
+  days when the integration starts (in the recorder's executor), then stepped each slot, over the plant's meters,
   the SOC, the house load and the integration's own *Import price* and *Export price*
   as recorded. On a new install those have no history yet: the valuation names
   `battery_lots` and prices what the battery holds as bought at the import until the

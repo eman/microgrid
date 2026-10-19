@@ -4,7 +4,10 @@ When the integration starts, the ledger runs in over :data:`RUN_IN` of history (
 battery held before then of unknown origin); then each completed slot is read on its own
 and stepped. The meters, the SOC and the house load are the measured entities; the
 prices each slot was charged at are the integration's own import and export price
-sensors, as recorded. A failed read advances nothing and the lots go stale:
+sensors, as recorded. The reads and the ledger run off the event loop (the coordinator
+runs :meth:`LotsTracker.update` in the recorder's executor); :meth:`LotsTracker.current`
+reads the lots the last step left, replaced whole. A failed read advances nothing and
+the lots go stale:
 :meth:`LotsTracker.current` gives them only while fresh and while the last slot was
 metered. Longer than :data:`RESTART_AFTER` without a step (Home Assistant was down) and
 the ledger runs in again.
@@ -42,9 +45,17 @@ _DC_CARRY_IN: Final = timedelta(days=1)
 _DC_STALE_AFTER: Final = timedelta(minutes=5)
 
 
-def bindings(plant: Plant, measured: Measured, *, import_price: str, export_price: str) -> Bindings:
-    """Which recorded entity is which, for ``plant``. Raises :class:`LotsError` naming
-    what the ledger needs and the configuration does not name."""
+def bindings(
+    plant: Plant,
+    measured: Measured,
+    *,
+    import_price: str,
+    export_price: str,
+    soc_unit: str | None = None,
+) -> Bindings:
+    """Which recorded entity is which, for ``plant``; the SOC in ``soc_unit`` (its
+    entity's), else the configured unit. Raises :class:`LotsError` naming what the
+    ledger needs and the configuration does not name."""
     by_kind = {kind: name for name, kind in plant.meters.items()}
     missing = [kind for kind in ("pv", "grid", "battery") if kind not in by_kind]
     if missing:
@@ -61,7 +72,7 @@ def bindings(plant: Plant, measured: Measured, *, import_price: str, export_pric
         grid=entity[by_kind["grid"]],
         battery=entity[by_kind["battery"]],
         soc=measured.soc,
-        soc_unit=measured.soc_unit,
+        soc_unit=soc_unit if soc_unit is not None else measured.soc_unit,
         house=measured.house,
         heartbeat=measured.heartbeat or measured.house,
         telemetry=TELEMETRY,
@@ -95,8 +106,9 @@ class LotsTracker:
         self._max_age = 3 * slot
         self._ledger: Ledger | None = None
         self._through: datetime | None = None
-        #: Whether the last slot stepped was metered, with a SOC at its end.
-        self._complete = False
+        #: The lots after the last slot stepped, where it was metered with a SOC at its
+        #: end; replaced whole after each step.
+        self._lots: Lots | None = None
 
     async def update(self, now: datetime) -> None:
         """Step the ledger through the last completed slot. Raises on a failed read
@@ -123,19 +135,23 @@ class LotsTracker:
         slots = step_slots(ledger, recorded, plant)
         self._ledger, self._through = ledger, end
         last = len(recorded.starts) - 1
-        self._complete = bool(slots) and (
+        complete = bool(slots) and (
             recorded.flows[last] is not None and recorded.stored_after[last] is not None
         )
+        self._lots = Lots(as_of=end, held=ledger.held, pool=ledger.pool) if complete else None
 
     def current(self, now: datetime) -> Lots | None:
         """The lots, if fresh and the last slot was metered; else None."""
-        if self._ledger is None or self._through is None or not self._complete:
+        lots = self._lots
+        if lots is None or now - lots.as_of > self._max_age:
             return None
-        if now - self._through > self._max_age:
-            return None
-        return Lots(as_of=self._through, held=self._ledger.held, pool=self._ledger.pool)
+        return lots
 
     @property
     def through(self) -> datetime | None:
         """The end of the last slot stepped."""
         return self._through
+
+    def due(self, now: datetime) -> datetime:
+        """The slot boundary :meth:`update` at ``now`` steps through."""
+        return slot_floor(now - SETTLE, self._slot)

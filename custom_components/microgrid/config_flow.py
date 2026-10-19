@@ -371,6 +371,9 @@ _GRID_SCHEMA = vol.Schema(
 
 # -- what is measured ------------------------------------------------------------------------
 
+#: The SOC's unit where its entity states none: a fraction (0 to 1), ``soc_unit = ""``.
+_SOC_FRACTION = "fraction"
+
 
 def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
     """The measured entities' form: one per plant meter, the SOC, the house load, the mode."""
@@ -389,6 +392,13 @@ def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
         schema[optional(f"meter_{name}", meters.get(name))] = power
     if plant.storage is not None:
         schema[optional("soc", current.get("soc"))] = power
+        schema[
+            vol.Required(
+                "soc_unit", default=_SOC_FRACTION if current.get("soc_unit") == "" else "%"
+            )
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(options=["%", _SOC_FRACTION], translation_key="soc_unit")
+        )
     schema[optional("house", current.get("house"))] = power
     if plant.storage is not None:
         schema[optional("dispatch", current.get("dispatch"))] = selector.EntitySelector()
@@ -415,6 +425,8 @@ def measured_from_form(plant: Plant, form: Mapping[str, Any]) -> dict[str, Any]:
         if form.get(key):
             section[key] = form[key]
     if plant.storage is not None:
+        if form.get("soc_unit") == _SOC_FRACTION:
+            section["soc_unit"] = ""
         if form.get("dispatch"):
             section["dispatch"] = form["dispatch"]
             modes = [m.strip() for m in str(form.get("modelled_modes", "")).split(",") if m.strip()]
@@ -717,9 +729,13 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
 
     def __init__(self) -> None:
         self._reader = {}
+        #: A plant edited in this flow, saved with what it measures.
+        self._new_plant: dict[str, Any] | None = None
 
     @property
     def plant_data(self) -> dict[str, Any]:  # type: ignore[override]
+        if self._new_plant is not None:
+            return self._new_plant
         return dict(self.config_entry.data[CONF_PLANT])
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -741,15 +757,14 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
             text = user_input[CONF_PLANT_TOML]
             try:
                 data = plant_from_toml(text)
-                plant = read_plant(data, self.hass.config.time_zone)
-                check_measured(plant, self.options.get(CONF_MEASURED, {"from": "home_assistant"}))
+                read_plant(data, self.hass.config.time_zone)
             except SetupError as err:
                 errors["base"], placeholders = "invalid", _problems(err)
             else:
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data={**self.config_entry.data, CONF_PLANT: data}
-                )
-                return self._save()
+                # What it measures follows the plant (its meters, a battery's SOC): the
+                # measured step comes next, and saves the two together.
+                self._new_plant = data
+                return await self.async_step_measured()
         schema = vol.Schema(
             {
                 vol.Required(CONF_PLANT_TOML, default=text): selector.TextSelector(
@@ -778,6 +793,11 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
                 errors["base"], placeholders = "invalid", _problems(err)
             else:
                 self.options[CONF_MEASURED] = section
+                if self._new_plant is not None:
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data={**self.config_entry.data, CONF_PLANT: self._new_plant},
+                    )
                 return self._save()
         return self.async_show_form(
             step_id="measured",

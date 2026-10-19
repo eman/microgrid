@@ -52,9 +52,11 @@ class Buffer[T]:
         while len(self.samples) > 1 and self.samples[1].at <= begin:
             del self.samples[0]
 
-    def series(self, now: datetime) -> Series[T] | None:
-        kept = tuple(s for s in self.samples if s.at <= now)
-        return Series(kept, now) if kept else None
+    def series(self, now: datetime, until: datetime | None = None) -> Series[T] | None:
+        """The samples up to ``now``, vouched for until ``until`` (``now``)."""
+        known = now if until is None else min(until, now)
+        kept = tuple(s for s in self.samples if s.at <= known)
+        return Series(kept, known) if kept else None
 
 
 def _power(text: str, unit: str | None) -> float | None:
@@ -116,9 +118,9 @@ class Telemetry:
             for buffer in buffers:
                 buffer.prune(now - window)
 
-    def dispatch_series(self, now: datetime) -> Series[bool] | None:
+    def dispatch_series(self, now: datetime, until: datetime | None = None) -> Series[bool] | None:
         """Whether the plant runs as modelled: the mode entity's, or the configured
         constant."""
         if self._measured.dispatch_as_modelled is not None:
             return Series((Sample(now, self._measured.dispatch_as_modelled),), now)
-        return None if self.dispatch is None else self.dispatch.series(now)
+        return None if self.dispatch is None else self.dispatch.series(now, until)
