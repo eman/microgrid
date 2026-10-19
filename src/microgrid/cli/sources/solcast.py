@@ -21,7 +21,7 @@ from datetime import UTC, datetime, timedelta
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
 
 from microgrid.cli.sources import SourceError
-from microgrid.cli.sources.home_assistant import HaClient, HaError
+from microgrid.cli.sources.api import HomeAssistantApi
 from microgrid.engine.series import Forecast, Interval, Quantiles
 
 __all__ = [
@@ -128,7 +128,7 @@ def parse_forecast(
 
 
 async def fetch_forecast(
-    client: HaClient, entities: Sequence[str], last_polled_entity: str
+    client: HomeAssistantApi, entities: Sequence[str], last_polled_entity: str
 ) -> SolcastRead:
     """Read every configured forecast sensor and the last-polled sensor, and merge.
 
@@ -140,7 +140,7 @@ async def fetch_forecast(
     for entity in entities:
         try:
             states.append(await client.get_state(entity))
-        except HaError as err:
+        except SourceError as err:
             log.warning("skipping Solcast sensor %s: %s", entity, err)
             skipped.append(entity)
     as_of = parse_last_polled(await client.get_state(last_polled_entity))

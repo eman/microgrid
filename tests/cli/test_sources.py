@@ -99,7 +99,8 @@ dispatch = "select.mode"
     for expected in (
         "schema",
         "colour: is not a setting",
-        "prices.from: must be one of tariffkit, entity",
+        "prices.from: must be one of tariffkit, nordpool, amber, tibber, octopus, entsoe,"
+        " openei, entity, action",
         "load_forecast.attribute: is required",
         "load_forecast.keys",
         "measured.modelled_modes: is required with a dispatch entity",
@@ -460,5 +461,8 @@ path = "prices.csv"
     )
     with pytest.raises(SourcesConfigError) as refused:
         read_sources(path)
-    assert "prices.from: must be one of tariffkit, entity" in str(refused.value)
+    assert (
+        "prices.from: must be one of tariffkit, nordpool, amber, tibber, octopus, entsoe,"
+        " openei, entity, action" in str(refused.value)
+    )
     assert "csv" not in str(refused.value).split("must be one of", 1)[1]

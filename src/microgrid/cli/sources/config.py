@@ -46,17 +46,24 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from ipaddress import ip_address, ip_network
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 from urllib.parse import urlsplit
 
 __all__ = [
     "HA_TOKEN_ENV",
+    "PRICE_READERS",
     "SCHEMA",
+    "ActionForecast",
+    "Amber",
     "Emhass",
     "EntityForecast",
+    "Entsoe",
     "HomeAssistant",
     "LoadSource",
     "Measured",
+    "NordPool",
+    "Octopus",
+    "OpenEI",
     "Predbat",
     "PriceSource",
     "PvSource",
@@ -64,6 +71,9 @@ __all__ = [
     "Sources",
     "SourcesConfigError",
     "TariffKit",
+    "Tibber",
+    "forecast_source",
+    "measured_source",
     "read_sources",
 ]
 
@@ -148,11 +158,114 @@ class EntityForecast:
     #: The values' unit (power: W, kW; prices: per kWh or per MWh, any currency); None:
     #: the entity's ``unit_of_measurement``.
     unit: str | None = None
+    #: Prices only: a fixed export price per kWh, where the rows hold the import alone.
+    export: float | None = None
 
 
-type PriceSource = TariffKit | EntityForecast
-type PvSource = Solcast | EntityForecast
-type LoadSource = Emhass | Predbat | EntityForecast
+@dataclass(frozen=True, slots=True)
+class ActionForecast:
+    """Any action whose response holds a forecast: rows as :class:`EntityForecast`
+    reads them, found in the response by ``rows`` (a path of keys)."""
+
+    domain: str
+    service: str
+    data: Mapping[str, object] = field(default_factory=dict)
+    #: The keys leading from the response to the list of rows.
+    rows: tuple[str, ...] = ()
+    start_key: str = "start"
+    end_key: str | None = "end"
+    period: timedelta | None = None
+    keys: Mapping[str, str] = field(default_factory=dict)
+    #: The values' unit; None: per kWh for prices (a power needs one).
+    unit: str | None = None
+    export: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NordPool:
+    """Day-ahead prices from Home Assistant's Nord Pool integration (its
+    ``get_prices_for_date`` action): the market's price, before any fee or tax a
+    supplier adds. It publishes no export price: ``export`` is fixed."""
+
+    area: str
+    export: float
+    #: The integration's config entry; None: the one loaded.
+    config_entry: str | None = None
+    #: The currency to ask for (EUR, SEK, ...); None: the integration's.
+    currency: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Amber:
+    """Prices from Home Assistant's Amber Electric integration: each channel's price
+    entity (the interval under way) and forecast entity (the intervals after it). The
+    export price is the feed-in channel's, else ``export``, fixed."""
+
+    price: str
+    forecast: str
+    feed_in_price: str | None = None
+    feed_in_forecast: str | None = None
+    export: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Tibber:
+    """Prices from Home Assistant's Tibber integration (its ``get_prices`` action), with
+    tax. It publishes no export price: ``export`` is fixed."""
+
+    export: float
+    #: The home's name in the response; None: the only home.
+    home: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Octopus:
+    """Prices from the Octopus Energy integration's day-rates event entities (today's,
+    tomorrow's), with VAT. The export price is the export meter's entities', else
+    ``export``, fixed."""
+
+    entities: tuple[str, ...]
+    export_entities: tuple[str, ...] = ()
+    export: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Entsoe:
+    """Prices from the ENTSO-E integration's average-price entity (its ``prices`` list),
+    as its own settings make them (a modifier, VAT). It publishes no export price:
+    ``export`` is fixed."""
+
+    entity: str
+    export: float
+
+
+@dataclass(frozen=True, slots=True)
+class OpenEI:
+    """Prices from the OpenEI integration: the rate in force (with its adjustment, where
+    the plan has one) until the rate structure next changes. It publishes no rate past
+    that change, so the prices end there, unless the plan has one rate (no change). The
+    export price is the plan's sell rate, else ``export``, fixed."""
+
+    current_rate: str
+    next_structure_time: str
+    adjustment: str | None = None
+    sell_rate: str | None = None
+    export: float | None = None
+
+
+type PriceSource = (
+    TariffKit
+    | NordPool
+    | Amber
+    | Tibber
+    | Octopus
+    | Entsoe
+    | OpenEI
+    | EntityForecast
+    | ActionForecast
+)
+type PvSource = Solcast | EntityForecast | ActionForecast
+type LoadSource = Emhass | Predbat | EntityForecast | ActionForecast
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,7 +309,7 @@ class Sources:
 
     def uses_home_assistant(self) -> bool:
         """Whether any section reads Home Assistant."""
-        named = (TariffKit, Solcast, Emhass, Predbat, EntityForecast)
+        named = (Solcast, Emhass, Predbat, EntityForecast, *PRICE_READERS.values())
         return (
             isinstance(self.prices, named)
             or isinstance(self.pv_forecast, named)
@@ -216,13 +329,51 @@ def read_sources(path: Path) -> Sources:
     return _Reader(path).sources(data)
 
 
+def forecast_source(
+    name: Literal["prices", "pv_forecast", "load_forecast"], data: Mapping[str, object]
+) -> PriceSource | PvSource | LoadSource:
+    """One forecast section (``[prices]``, ``[pv_forecast]`` or ``[load_forecast]``) as
+    plain data, read as a ``sources/1`` file reads it: for a client that keeps its
+    sources elsewhere. Raises :class:`SourcesConfigError` naming every problem."""
+    reader = _Reader(Path())
+    found = reader.forecast(name, data) if name in _FORECASTS else None
+    if name not in _FORECASTS:
+        reader.fail(name, f"must be one of {', '.join(_FORECASTS)}")
+    if reader.errors or found is None:
+        raise SourcesConfigError(reader.errors or [f"{name}: cannot be read"])
+    return found
+
+
+def measured_source(data: Mapping[str, object]) -> Measured:
+    """The ``[measured]`` section as plain data, read as a ``sources/1`` file reads it.
+    Raises :class:`SourcesConfigError` naming every problem."""
+    reader = _Reader(Path())
+    found = reader.measured(data)
+    if reader.errors or found is None:
+        raise SourcesConfigError(reader.errors or ["measured: cannot be read"])
+    return found
+
+
+#: Each price reader's ``from``, and its configuration.
+PRICE_READERS: Final[Mapping[str, type]] = {
+    "tariffkit": TariffKit,
+    "nordpool": NordPool,
+    "amber": Amber,
+    "tibber": Tibber,
+    "octopus": Octopus,
+    "entsoe": Entsoe,
+    "openei": OpenEI,
+    "entity": EntityForecast,
+    "action": ActionForecast,
+}
+
 _FORECASTS: Final = {
-    "prices": ("tariffkit", "entity"),
-    "pv_forecast": ("solcast", "entity"),
-    "load_forecast": ("emhass", "predbat", "entity"),
+    "prices": tuple(PRICE_READERS),
+    "pv_forecast": ("solcast", "entity", "action"),
+    "load_forecast": ("emhass", "predbat", "entity", "action"),
 }
 _KEYS: Final = {
-    "prices": ({"import", "export"},),
+    "prices": ({"import", "export"}, {"import"}),
     "pv_forecast": ({"value"}, {"p10", "p50", "p90"}),
     "load_forecast": ({"value"},),
 }
@@ -294,6 +445,26 @@ class _Reader:
             return None
         return timedelta(minutes=value)
 
+    def price(
+        self, data: Mapping[str, object], key: str, where: str, *, required: bool = False
+    ) -> float | None:
+        value = data.get(key)
+        if value is None:
+            if required:
+                self.fail(f"{where}.{key}", "is required: a fixed export price per kWh")
+            return None
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            self.fail(f"{where}.{key}", "must be a price per kWh (a number)")
+            return None
+        return float(value)
+
+    def names(self, data: Mapping[str, object], key: str, where: str) -> tuple[str, ...]:
+        value = data.get(key, [])
+        if not isinstance(value, list) or not all(isinstance(e, str) and e for e in value):
+            self.fail(f"{where}.{key}", "must list entity ids")
+            return ()
+        return tuple(value)
+
     def unknown(self, data: Mapping[str, object], known: set[str], where: str) -> None:
         for key in sorted(set(data) - known):
             self.fail(f"{where}.{key}" if where else key, "is not a setting")
@@ -354,7 +525,7 @@ class _Reader:
 
     def forecast(
         self, name: str, data: Mapping[str, object] | None
-    ) -> TariffKit | Solcast | Emhass | Predbat | EntityForecast | None:
+    ) -> PriceSource | PvSource | LoadSource | None:
         if data is None:
             return None
         kind = data.get("from")
@@ -364,6 +535,10 @@ class _Reader:
         if kind == "tariffkit":
             self.unknown(data, {"from", "config_entry"}, name)
             return TariffKit(self.text(data, "config_entry", name))
+        if kind in ("nordpool", "amber", "tibber", "octopus", "entsoe", "openei"):
+            return self.named_prices(str(kind), name, data)
+        if kind == "action":
+            return self.action(name, data)
         if kind == "solcast":
             self.unknown(data, {"from", "entities", "last_polled"}, name)
             entities = data.get("entities")
@@ -395,23 +570,70 @@ class _Reader:
             )
         return self.entity(name, data)
 
-    def entity(self, name: str, data: Mapping[str, object]) -> EntityForecast | None:
-        self.unknown(
-            data,
-            {
-                "from",
-                "entity",
-                "attribute",
-                "start_key",
-                "end_key",
-                "period_minutes",
-                "keys",
-                "unit",
-            },
-            name,
-        )
-        entity = self.text(data, "entity", name, required=True)
-        attribute = self.text(data, "attribute", name, required=True)
+    def named_prices(self, kind: str, name: str, data: Mapping[str, object]) -> PriceSource | None:
+        if kind == "nordpool":
+            self.unknown(data, {"from", "area", "config_entry", "currency", "export"}, name)
+            area = self.text(data, "area", name, required=True)
+            export = self.price(data, "export", name, required=True)
+            if area is None or export is None:
+                return None
+            return NordPool(
+                area.upper(),
+                export,
+                self.text(data, "config_entry", name),
+                self.text(data, "currency", name),
+            )
+        if kind == "amber":
+            known = {"from", "price", "forecast", "feed_in_price", "feed_in_forecast", "export"}
+            self.unknown(data, known, name)
+            price = self.text(data, "price", name, required=True)
+            forecast = self.text(data, "forecast", name, required=True)
+            feed_in = self.text(data, "feed_in_price", name)
+            feed_in_forecast = self.text(data, "feed_in_forecast", name)
+            export = self.price(data, "export", name)
+            if (feed_in is None) != (feed_in_forecast is None):
+                self.fail(name, "name both feed_in_price and feed_in_forecast, or neither")
+            if (feed_in is None) == (export is None):
+                self.fail(name, "take the export from the feed-in entities or a fixed export")
+            if price is None or forecast is None:
+                return None
+            return Amber(price, forecast, feed_in, feed_in_forecast, export)
+        if kind == "tibber":
+            self.unknown(data, {"from", "home", "export"}, name)
+            export = self.price(data, "export", name, required=True)
+            home = self.text(data, "home", name)
+            return None if export is None else Tibber(export, home)
+        if kind == "octopus":
+            self.unknown(data, {"from", "entities", "export_entities", "export"}, name)
+            entities = self.names(data, "entities", name)
+            exports = self.names(data, "export_entities", name)
+            export = self.price(data, "export", name)
+            if not entities:
+                self.fail(f"{name}.entities", "must list the day-rates entities, today's first")
+            if bool(exports) == (export is not None):
+                self.fail(name, "take the export from export_entities or a fixed export")
+            return Octopus(entities, exports, export) if entities else None
+        if kind == "entsoe":
+            self.unknown(data, {"from", "entity", "export"}, name)
+            entity = self.text(data, "entity", name, required=True)
+            export = self.price(data, "export", name, required=True)
+            return None if entity is None or export is None else Entsoe(entity, export)
+        known = {"from", "current_rate", "next_structure_time", "adjustment", "sell_rate", "export"}
+        self.unknown(data, known, name)
+        rate = self.text(data, "current_rate", name, required=True)
+        change = self.text(data, "next_structure_time", name, required=True)
+        sell = self.text(data, "sell_rate", name)
+        export = self.price(data, "export", name)
+        if (sell is None) == (export is None):
+            self.fail(name, "take the export from sell_rate or a fixed export")
+        if rate is None or change is None:
+            return None
+        return OpenEI(rate, change, self.text(data, "adjustment", name), sell, export)
+
+    def rows(
+        self, name: str, data: Mapping[str, object]
+    ) -> tuple[str, str | None, timedelta | None, dict[str, str], str | None, float | None]:
+        """The row settings an entity's or action's forecast shares."""
         end_key = self.text(data, "end_key", name)
         period = self.minutes(data, "period_minutes", name)
         if end_key is None and period is None:
@@ -425,16 +647,49 @@ class _Reader:
         if set(keys) not in _KEYS[name]:
             shapes = " or ".join("/".join(sorted(s)) for s in _KEYS[name])
             self.fail(f"{name}.keys", f"must name {shapes}")
-        if entity is None or attribute is None:
-            return None
-        return EntityForecast(
-            entity,
-            attribute,
+        export = self.price(data, "export", name) if name == "prices" else None
+        if name == "prices" and ("export" in keys) == (export is not None):
+            self.fail(name, "take the export from keys.export or a fixed export, not both")
+        return (
             self.text(data, "start_key", name) or "start",
             None if period is not None and end_key is None else end_key,
             period,
             dict(keys),
             self.text(data, "unit", name),
+            export,
+        )
+
+    _ROW_SETTINGS: Final = {"start_key", "end_key", "period_minutes", "keys", "unit", "export"}
+
+    def entity(self, name: str, data: Mapping[str, object]) -> EntityForecast | None:
+        settings = self._ROW_SETTINGS if name == "prices" else self._ROW_SETTINGS - {"export"}
+        self.unknown(data, {"from", "entity", "attribute", *settings}, name)
+        entity = self.text(data, "entity", name, required=True)
+        attribute = self.text(data, "attribute", name, required=True)
+        start_key, end_key, period, keys, unit, export = self.rows(name, data)
+        if entity is None or attribute is None:
+            return None
+        return EntityForecast(entity, attribute, start_key, end_key, period, keys, unit, export)
+
+    def action(self, name: str, data: Mapping[str, object]) -> ActionForecast | None:
+        settings = self._ROW_SETTINGS if name == "prices" else self._ROW_SETTINGS - {"export"}
+        self.unknown(data, {"from", "action", "data", "rows", *settings}, name)
+        action = self.text(data, "action", name, required=True)
+        domain, _, service = (action or "").partition(".")
+        if action is not None and not (domain and service):
+            self.fail(f"{name}.action", f"must be domain.action: {action!r}")
+        payload = data.get("data", {})
+        if not isinstance(payload, dict):
+            self.fail(f"{name}.data", "must be a table")
+            payload = {}
+        path = self.names(data, "rows", name)
+        start_key, end_key, period, keys, unit, export = self.rows(name, data)
+        if name != "prices" and unit is None:
+            self.fail(f"{name}.unit", "is required: the values' power unit (W, kW, MW)")
+        if not (domain and service):
+            return None
+        return ActionForecast(
+            domain, service, dict(payload), path, start_key, end_key, period, keys, unit, export
         )
 
     def measured(self, data: Mapping[str, object] | None) -> Measured | None:

@@ -4,6 +4,26 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+### Added
+
+- Price readers for more Home Assistant integrations, in `sources/1`: Nord Pool
+  (`from = "nordpool"`), Amber Electric (`amber`), Tibber (`tibber`), Octopus Energy
+  (`octopus`), ENTSO-E (`entsoe`) and OpenEI (`openei`), each reading what the
+  integration publishes. OpenEI publishes no rate past the next change, so its prices,
+  and the valuation's horizon, end there.
+- `from = "action"`: any input from an action whose response holds rows, as an entity's
+  attribute would.
+- A fixed `export` price per kWh, for prices whose source publishes the import alone
+  (an entity's or an action's rows, and the named readers with no export price).
+  Import and export prices from separate entities are split at each change of either.
+- A forecast read from a source has each interval that starts or ends inside an engine
+  slot split where the slots begin, so quarter-hour prices are priced at 10-minute
+  slots, each slot at the mean of its pieces.
+- `microgrid.cli.sources.api.HomeAssistantApi`: what a reader asks of Home Assistant.
+  The readers take any client that answers it, and import without an HTTP client.
+  `read.read_forecast`, `read.source_name`, `config.forecast_source` and
+  `config.measured_source` are public.
+
 ### Changed (documentation)
 
 - The documentation and the module docstrings no longer rebut what nobody said:

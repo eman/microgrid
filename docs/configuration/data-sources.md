@@ -53,8 +53,8 @@ dispatch_as_modelled = true
 - **No entity has a default**, because each site names its own. The exceptions are
   tools that publish under a fixed name (EMHASS, Predbat); a section may rename those
   too.
-- **Every problem is named at once**, with its path (`prices.from: must be one of
-  tariffkit, entity`). A key the schema does not have is an error.
+- **Every problem is named at once**, with its path (`prices.area: is required`). A key
+  the schema does not have is an error.
 
 ## `[home_assistant]`
 
@@ -67,16 +67,25 @@ dispatch_as_modelled = true
 the file can be shared or committed. Because the token is sent to `url`, a file cannot
 send another variable, nor send the token in cleartext beyond the local network: a
 shared file pointing elsewhere is refused. Use a token of a user of its own, not an
-administrator's: the library only reads states and calls TariffKit's and EMHASS's
-services (TariffKit's config-entry discovery is the one call that needs an
-administrator; name `config_entry` to avoid it). The section is required when any section reads
-Home Assistant: `entity`, `tariffkit`, `solcast`, `emhass`, `predbat`, or `[measured]`.
+administrator's: the library reads states and calls the actions the configured
+readers name (TariffKit's, Nord Pool's, Tibber's, or the one `from = "action"` names).
+Finding a TariffKit or Nord Pool config entry is the one call that needs an
+administrator; name `config_entry` to avoid it. The section is required when any section
+reads Home Assistant, which every reader does.
 
 ## Units
 
 Power is W, kW or MW. A price unit is a currency, as a code or a symbol, before `/Wh`,
 `/kWh` or `/MWh` (`EUR/MWh`, `USD/kWh`, `¢/kWh`); per-Wh and per-MWh prices become per
 kWh, and the currency is never converted ([Currency](../concepts/units.md#currency)).
+
+## Intervals and the engine's slots
+
+A forecast's intervals may be longer or shorter than the engine's
+[slot](../concepts/slots-horizon.md). An interval that starts or ends inside a slot (a
+quarter hour, at 10-minute slots) is split where the slots begin, and the engine takes
+the mean of the pieces in each slot, weighted by length: a slot from 10:10 to 10:20 is
+priced half at the 10:00 quarter hour's price and half at the 10:15 one's.
 
 ## Any entity: `from = "entity"`
 
@@ -90,10 +99,11 @@ start time, an end time or a fixed length, and its values**.
 | `start_key` | `"start"` | each row's start time |
 | `end_key` | `"end"` | each row's end time; leave it out and set `period_minutes` for rows of a fixed length |
 | `period_minutes` | none | each row's length, where rows have no end time |
-| `keys` | required | which of the row's keys holds each value: `import` and `export` for prices; `value`, or `p10`, `p50` and `p90`, for PV; `value` for a load |
+| `keys` | required | which of the row's keys holds each value: `import`, and `export` unless `export` is set, for prices; `value`, or `p10`, `p50` and `p90`, for PV; `value` for a load |
 | `unit` | the entity's `unit_of_measurement` | the values' unit: power for PV and loads; a price unit for prices, where none means per kWh |
+| `export` | none | prices only: a fixed export price per kWh, for rows that hold the import alone |
 
-Times are ISO 8601 with an offset. The issue time is the state's `last_updated`. A row
+Times are ISO 8601 with an offset (`T` or a space between the date and the time). The issue time is the state's `last_updated`. A row
 that cannot be read is an error, not skipped, since nothing is known about the provider's
 faults.
 
@@ -101,6 +111,23 @@ faults.
 example one whose entities hold only daily energy totals, or only the current power.
 Check what the integration's entity holds (its attributes, in Home Assistant's
 developer tools) before configuring it.
+
+## Any action: `from = "action"`
+
+Some integrations publish a forecast as an action's response. Any input can come from
+such an action whose response holds **rows as an entity's attribute would**.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `action` | required | the action, as `domain.action` |
+| `data` | `{}` | the action's fields |
+| `rows` | `[]` | the keys leading from the response to the list of rows (`["forecast", "rows"]` for `{"forecast": {"rows": [...]}}`) |
+| `start_key`, `end_key`, `period_minutes`, `keys`, `export` | as for an entity | the rows |
+| `unit` | none | the values' unit: required for PV and loads (W, kW, MW); for prices, none means per kWh |
+
+The response carries no time it was made, so the issue time is the time of the read.
+The action is called with the same fields at every read: one whose fields name dates
+needs a reader of its own.
 
 ## Presets for named tools
 
@@ -120,6 +147,113 @@ slot that starts mid-hour is still priced at the far end; the horizon may be at 
 167 hours. The answer is one forecast issue, stamped when TariffKit answered
 (`generated_at`). A gap between its hours is an error. TariffKit prices in US dollars,
 and a dataset saved from it says `USD/kWh`.
+
+### Prices with no export price
+
+Most price integrations publish what a kWh costs to import and nothing for an export.
+Their readers take a fixed `export` price per kWh, which is a number in the file, as the
+export price for every slot. Where an integration publishes the export on its own
+entities (Amber's feed-in channel, Octopus's export meter, OpenEI's sell rate), the
+reader takes those instead. Where the import and export prices change at different
+times, the prices are split at each change of either, and end where either ends.
+
+### Prices: `from = "nordpool"`
+
+Home Assistant's Nord Pool integration publishes the day-ahead market's prices. Its
+`nordpool.get_prices_for_date` action answers each delivery period's price per MWh, in
+the currency the integration is set to.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `area` | required | the price area (`SE3`, `DK1`, `FI`, ...) |
+| `export` | required | the export price per kWh |
+| `config_entry` | the one loaded | the integration's config entry |
+| `currency` | the integration's | the currency to ask for (`EUR`, `SEK`, `NOK`, `DKK`, `PLN`) |
+
+The reader asks for today's and tomorrow's prices (UTC dates). Tomorrow's are published
+in the early afternoon, Central European time; until then the prices end with today's.
+These are the market's prices, without a supplier's fees or taxes. The issue time is
+the time of the read.
+
+### Prices: `from = "amber"`
+
+Home Assistant's Amber Electric integration publishes each channel's price under way on
+one entity and the intervals after it on another (its `forecasts` attribute), in dollars
+per kWh with GST.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `price` | required | the general channel's price entity (`sensor.<site>_general_price`) |
+| `forecast` | required | the general channel's forecast entity (`sensor.<site>_general_forecast`) |
+| `feed_in_price`, `feed_in_forecast` | none | the feed-in channel's entities: the export price |
+| `export` | none | a fixed export price per kWh, without the feed-in entities |
+
+The feed-in channel's price is what an exported kWh earns, so a negative one costs to
+export. Amber states each interval's start one second past its boundary (`20:00:01`);
+the reader takes the minute. The issue time is the earlier `last_updated` of the entities read. A dataset
+saved from it says `AUD/kWh`.
+
+### Prices: `from = "tibber"`
+
+Home Assistant's Tibber integration's `tibber.get_prices` action answers each home's
+total price per kWh (energy and tax), by quarter hour.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `export` | required | the export price per kWh |
+| `home` | the only one | the home's name, where the account has more than one |
+
+The reader asks from the top of the hour under way over the horizon. Each quarter hour
+lasts until the next starts. The issue time is the time of the read.
+
+### Prices: `from = "octopus"`
+
+The Octopus Energy integration publishes each meter's rates on event entities, one per
+day (`event.octopus_energy_electricity_<serial>_<mpan>_current_day_rates`, and
+`..._next_day_rates`), as half hours in pounds per kWh with VAT.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `entities` | required | the import meter's rates entities, today's first |
+| `export_entities` | none | the export meter's rates entities (`..._export_current_day_rates`): the export price |
+| `export` | none | a fixed export price per kWh, without the export entities |
+
+Today's entity must hold rates; tomorrow's may not yet. An entity changes only when a
+day's rates are published, so the issue time is the time of the read. A dataset saved from it says `GBP/kWh`.
+
+### Prices: `from = "entsoe"`
+
+The ENTSO-E integration publishes the day-ahead prices on its average-price entity's
+`prices` attribute, hourly or by quarter hour, in its `unit_of_measurement`. They are
+the prices its own settings make: its price modifier and VAT.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `entity` | required | the average-price entity |
+| `export` | required | the export price per kWh |
+
+Each row lasts until the next starts. The entity changes only when the day's prices are
+published, so the issue time is the time of the read.
+
+### Prices: `from = "openei"`
+
+The OpenEI integration publishes a utility rate plan from the U.S. Utility Rate
+Database: the rate in force, its adjustment, its sell rate, and when the rate structure
+next changes.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `current_rate` | required | the rate in force (`sensor.<plan>_current_energy_rate`) |
+| `next_structure_time` | required | when the rate next changes (`sensor.<plan>_next_energy_rate_structure_time`) |
+| `adjustment` | none | the plan's adjustment in force, added to the rate |
+| `sell_rate` | none | the plan's sell rate: the export price |
+| `export` | none | a fixed export price per kWh, without the sell rate |
+
+**OpenEI publishes no rate past the next change, so the prices end there**: the
+valuation's horizon ends at that change, a shorter valuation rather than a fallback.
+With no change to come, the rate holds over the whole horizon. The change time is the
+plant's local time. A change time already past means the integration's rate is out of
+date, and the prices are not read. The issue time is the time of the read.
 
 ### PV: `from = "solcast"`
 
