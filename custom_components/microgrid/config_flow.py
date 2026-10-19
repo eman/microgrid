@@ -1016,7 +1016,16 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
             except SetupError as err:
                 errors["base"], placeholders = "invalid", _problems(err)
             else:
-                return await self._measured_kept(plant, section)
+                known = plant_id(plant, section)
+                other = (
+                    self.hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, known)
+                    if known is not None
+                    else None
+                )
+                if other is not None and other.entry_id != self.config_entry.entry_id:
+                    errors["base"] = "plant_taken"  # its grid meter is another entry's
+                else:
+                    return await self._measured_kept(plant, section)
         return self.async_show_form(
             step_id="measured",
             data_schema=measured_schema(plant, await self._measured_suggested(plant)),

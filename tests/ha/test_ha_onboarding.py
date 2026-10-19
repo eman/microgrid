@@ -426,6 +426,21 @@ async def test_a_plant_and_a_sources_file_make_an_entry_once(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.unique_id == "sensor.grid_power_2"
     await hass.async_block_till_done()
+
+    # Another entry's grid meter is refused: one entry per plant.
+    other = MockConfigEntry(domain=DOMAIN, unique_id="sensor.grid_other", data=entry.data)
+    other.add_to_hass(hass)
+    hass.states.async_set("sensor.grid_other", "0", {"unit_of_measurement": "W"})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "measured"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**MEASURED_FORM, "meter_grid": "sensor.grid_other"}
+    )
+    assert result["errors"] == {"base": "plant_taken"}
+    assert entry.unique_id == "sensor.grid_power_2"
+    await hass.async_block_till_done()
     assert await hass.config_entries.async_unload(entry.entry_id)
 
 

@@ -471,7 +471,8 @@
     },
     "error": {
       "invalid": "The configuration has problems:\n{problems}",
-      "read_failed": "The source could not be read: {error}"
+      "read_failed": "The source could not be read: {error}",
+      "plant_taken": "This grid meter is another entry's plant."
     }
   },
   "selector": {
