@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "microgrid"
-version = "0.1.3"
+version = "0.1.4.dev0"
 description = "A plant model and marginal energy prices for a solar + battery microgrid"
 readme = "README.md"
 requires-python = ">=3.14"
