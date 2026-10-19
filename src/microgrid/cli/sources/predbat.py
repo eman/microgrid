@@ -22,8 +22,8 @@ from bisect import bisect_right
 from datetime import UTC, datetime, timedelta
 
 from microgrid.cli.sources import SourceError
+from microgrid.cli.sources.api import HomeAssistantApi
 from microgrid.cli.sources.config import Predbat
-from microgrid.cli.sources.home_assistant import HaClient
 from microgrid.engine.series import Forecast, Interval
 
 __all__ = [
@@ -93,7 +93,7 @@ def parse_load_forecast(state: object, config: Predbat, *, now: datetime) -> For
 
 
 async def fetch_load_forecast(
-    client: HaClient, config: Predbat, *, now: datetime
+    client: HomeAssistantApi, config: Predbat, *, now: datetime
 ) -> Forecast[float]:
     """Read Predbat's entity and parse it (:func:`parse_load_forecast`)."""
     return parse_load_forecast(await client.get_state(config.entity), config, now=now)

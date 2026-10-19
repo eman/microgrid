@@ -84,10 +84,11 @@ modelled_modes = ["Self consumption"]
 
 ## 4. Swap a provider
 
-Each input takes whichever provider you have: prices from TariffKit's integration
-(`from = "tariffkit"`) or an entity; the PV forecast from Solcast's integration or an
-entity; the load forecast from EMHASS, Predbat or an entity. [Configure a
-source](configure-source.md) covers each one.
+Each input takes whichever provider you have: prices from TariffKit, Nord Pool, Amber
+Electric, Tibber, Octopus Energy, ENTSO-E or OpenEI's integration, an entity or an
+action; the PV forecast from Solcast's integration or an entity; the load forecast from
+EMHASS, Predbat or an entity. [Configure a source](configure-source.md) covers the
+common ones, and [Data sources](../configuration/data-sources.md) each one.
 
 ## 5. Value now
 

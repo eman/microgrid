@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Final
 
 from microgrid.cli.sources import SourceError
-from microgrid.cli.sources.home_assistant import HaClient
+from microgrid.cli.sources.api import HomeAssistantApi
 from microgrid.engine.series import Forecast, Interval
 from microgrid.engine.units import POWER_KW
 
@@ -116,7 +116,7 @@ def parse_load_forecast(
 
 
 async def fetch_load_forecast(
-    client: HaClient, config: ForecastEntity, *, period: timedelta = PERIOD
+    client: HomeAssistantApi, config: ForecastEntity, *, period: timedelta = PERIOD
 ) -> Forecast[float]:
     """Read the forecast entity's state and parse it (:func:`parse_load_forecast`)."""
     return parse_load_forecast(await client.get_state(config.entity), config, period=period)

@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from microgrid.cli.dataset import (
     BATTERY_FIRST,
@@ -26,15 +27,38 @@ from microgrid.cli.dataset import (
 from microgrid.cli.history import Limits
 from microgrid.cli.inputs import no_dc_forecast
 from microgrid.cli.offline import LOTS_RUN_IN, Setup, lots_or_why
-from microgrid.cli.sources import SourceError, emhass, entity, predbat, solcast, tariffkit
+from microgrid.cli.sources import (
+    SourceError,
+    action,
+    amber,
+    emhass,
+    entity,
+    entsoe,
+    nordpool,
+    octopus,
+    openei,
+    predbat,
+    solcast,
+    tariffkit,
+    tibber,
+)
+from microgrid.cli.sources.api import HomeAssistantApi
 from microgrid.cli.sources.config import (
+    PRICE_READERS,
+    ActionForecast,
+    Amber,
     Emhass,
     EntityForecast,
+    Entsoe,
     Measured,
+    NordPool,
+    Octopus,
+    OpenEI,
     Predbat,
     Solcast,
     Sources,
     TariffKit,
+    Tibber,
 )
 from microgrid.cli.sources.fetch import fetch_measured
 from microgrid.cli.sources.home_assistant import HaClient
@@ -46,7 +70,9 @@ from microgrid.plant import Plant
 
 __all__ = [
     "Read",
+    "read_forecast",
     "read_now",
+    "source_name",
 ]
 
 
@@ -73,20 +99,39 @@ def _price_unit(source: object) -> str:
     (the engine never converts a currency)."""
     unit = getattr(source, "unit", None)
     currency = unit.rpartition("/")[0] if isinstance(unit, str) and "/" in unit else ""
-    if isinstance(source, TariffKit):
-        currency = "USD"  # TariffKit prices in US dollars
+    named = {TariffKit: "USD", Amber: "AUD", Octopus: "GBP"}  # each prices in one currency
+    currency = named.get(type(source), currency)
     return f"{currency or 'currency'}/kWh"
 
 
-async def _forecast(
-    client: HaClient | None,
+async def read_forecast(
+    client: HomeAssistantApi,
     source: object,
     kind: entity.Kind,
     engine: EngineConfig,
     now: datetime,
+    *,
+    tz: ZoneInfo,
 ) -> Forecast[Any]:
-    if client is None:  # pragma: no cover - the configuration requires the connection
-        raise SourceError("no Home Assistant connection")
+    """One issue of the forecast ``source`` names (a ``sources/1`` section's source), read
+    now from ``client``: any :class:`~microgrid.cli.sources.api.HomeAssistantApi`.
+    ``tz`` is the plant's, for a source that publishes local times without an offset.
+    Raises :class:`~microgrid.cli.sources.SourceError` (or ``ValueError``) naming why it
+    cannot."""
+    if isinstance(source, NordPool):
+        return await nordpool.fetch_prices(client, source, now=now)
+    if isinstance(source, Amber):
+        return await amber.fetch_prices(client, source)
+    if isinstance(source, Tibber):
+        return await tibber.fetch_prices(client, source, now=now, horizon=engine.horizon)
+    if isinstance(source, Octopus):
+        return await octopus.fetch_prices(client, source)
+    if isinstance(source, Entsoe):
+        return await entsoe.fetch_prices(client, source)
+    if isinstance(source, OpenEI):
+        return await openei.fetch_prices(client, source, now=now, horizon=engine.horizon, tz=tz)
+    if isinstance(source, ActionForecast):
+        return await action.fetch_forecast(client, source, kind, now=now)
     if isinstance(source, TariffKit):
         entry = source.config_entry or await tariffkit.discover_config_entry(client)
         hours = math.ceil(engine.horizon / timedelta(hours=1))
@@ -106,14 +151,11 @@ async def _forecast(
     raise SourceError(f"no reader for {type(source).__name__}")  # pragma: no cover
 
 
-def _name(source: object) -> str:
-    return {
-        TariffKit: "tariffkit",
-        Solcast: "solcast",
-        Emhass: "emhass",
-        Predbat: "predbat",
-        EntityForecast: "entity",
-    }[type(source)]
+def source_name(source: object) -> str:
+    """The ``from`` a source is configured by (``tariffkit``, ``entity``, ...)."""
+    names: dict[type, str] = {kind: name for name, kind in PRICE_READERS.items()}
+    names.update({Solcast: "solcast", Emhass: "emhass", Predbat: "predbat"})
+    return names[type(source)]
 
 
 async def _measured(
@@ -207,9 +249,14 @@ async def read_now(
             if source is None:
                 problems[name] = "no source configured"
                 continue
+            if client is None:  # pragma: no cover - the configuration requires one
+                problems[name] = "no Home Assistant connection"
+                continue
             try:
-                forecasts[name] = await _forecast(client, source, kind, engine, now)
-                used[name] = _name(source)
+                forecasts[name] = await read_forecast(
+                    client, source, kind, engine, now, tz=plant.config.tz
+                )
+                used[name] = source_name(source)
             except (SourceError, ValueError) as err:
                 problems[name] = str(err)
         if plant.storage is not None:

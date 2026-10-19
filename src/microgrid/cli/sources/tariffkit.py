@@ -15,7 +15,7 @@ from itertools import pairwise
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
 
 from microgrid.cli.sources import SourceError
-from microgrid.cli.sources.home_assistant import HaClient
+from microgrid.cli.sources.api import HomeAssistantApi
 from microgrid.engine.series import Forecast, Interval, Price
 
 __all__ = [
@@ -94,7 +94,7 @@ MAX_REQUEST_HOURS = 168
 MAX_HORIZON_HOURS = MAX_REQUEST_HOURS - 1
 
 
-async def discover_config_entry(client: HaClient) -> str:
+async def discover_config_entry(client: HomeAssistantApi) -> str:
     """The ID of the single loaded TariffKit config entry."""
     loaded = [
         entry
@@ -111,7 +111,7 @@ async def discover_config_entry(client: HaClient) -> str:
 
 
 async def fetch_rates(
-    client: HaClient, *, config_entry: str, horizon: timedelta, now: datetime
+    client: HomeAssistantApi, *, config_entry: str, horizon: timedelta, now: datetime
 ) -> Forecast[Price]:
     """Hourly prices covering ``[now, now + horizon)``.
 
