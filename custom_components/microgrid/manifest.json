@@ -2,6 +2,7 @@
   "domain": "microgrid",
   "name": "Microgrid",
   "after_dependencies": [
+    "energy",
     "recorder"
   ],
   "codeowners": [
