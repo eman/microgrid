@@ -4,8 +4,6 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
-## [0.1.4] - 2026-10-19
-
 ### Changed (documentation)
 
 - The documentation and the module docstrings no longer rebut what nobody said:
