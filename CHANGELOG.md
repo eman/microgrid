@@ -4,6 +4,8 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-18
+
 ### Changed (documentation)
 
 - The README, the documentation's home page and the package's summary say what the
