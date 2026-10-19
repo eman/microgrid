@@ -5,12 +5,10 @@ produces **marginal energy prices** from it (`microgrid.engine`): what one more 
 costs, slot by slot over a horizon, and the value of energy by source. The plant model
 also stands alone, without the price code.
 
-- **Data in, data out.** No I/O: a client hands in the plant's configuration
-  (`plant/2`) and its inputs as time series (prices, PV and load forecasts, the
-  meters), and gets prices, regimes, certainties and surplus back.
-- **The plant model** takes its topology as configuration: PV of either coupling,
-  a battery on its own inverter or on a hybrid's DC bus, loads on either bus, the
-  grid's limits and charge windows.
+You describe the plant (`plant/2`: PV of either coupling, a battery on its own inverter
+or on a hybrid's DC bus, loads on either bus, the grid's limits and charge windows) and
+give it its inputs as time series (prices, PV and load forecasts, the meters); it returns
+prices, regimes, certainties and surplus for each slot.
 
 The documentation is in [`docs/`](https://github.com/eman/microgrid/blob/main/docs/index.md),
 published with each release at `https://eman.github.io/microgrid/`:
@@ -31,7 +29,7 @@ model: pin the minor release you tested with (`microgrid ~= 0.1.0`,
 
 `microgrid` (`microgrid.cli`, installed with the library) runs it on a dataset
 (`dataset/1`: a directory of series and the plant's and engine's files), so it needs no
-plant at hand. `microgrid.cli` reads the files; the engine still does no I/O. The example
+plant at hand. The example
 dataset (`examples/dataset`) is one synthetic week of the library's example plant in
 Europe/Berlin, the DST change on 2026-10-25 inside it:
 

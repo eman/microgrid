@@ -4,6 +4,12 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+### Changed (documentation)
+
+- The README, the documentation's home page and the package's summary say what the
+  library takes and returns, without the "data in, data out" slogan; why it does no I/O
+  is in *Scope* (`docs/methodology/scope.md`).
+
 ## [0.1.0] - 2026-10-18
 
 The first version, under the MIT license.
