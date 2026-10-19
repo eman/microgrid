@@ -26,7 +26,7 @@ flowchart LR
 `plant/2` is the plant's description ([reference](reference/plant.md)); each output is
 defined in [Outputs](concepts/outputs.md).
 
-## What makes it different
+## How it prices
 
 - **It prices the next kWh, not the average one.** A kWh used in a slot comes from one
   source: PV that would have been exported, the grid, or the battery. The price is that
@@ -61,8 +61,7 @@ defined in [Outputs](concepts/outputs.md).
 
 | Part | What |
 |---|---|
-| `microgrid.engine` | the library: the plant model, the price model, the battery's [lots](methodology/lots.md), the series and units its inputs arrive in, the checks against the meters |
+| `microgrid.plant` | the plant model: the plant described as data (`plant/2`) and projected slot by slot. It stands alone, without the price code. |
+| `microgrid.engine` | the price model, the battery's [lots](methodology/lots.md), the series and units its inputs arrive in, the checks against the meters |
 | `microgrid.cli` | the `microgrid` command: the library run on a dataset (`dataset/1`) of files, or on a site's live sources (`sources/1`; the `sources` extra). |
 | `examples/dataset` | one synthetic week of an example plant, with the outputs the repository's tests check the command against. |
-
-microgrid is pre-release: [install it](install.md) from its git repository.

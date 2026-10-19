@@ -4,6 +4,14 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-18
+
+### Fixed (documentation)
+
+- The documentation's home page: *What makes it different* is *How it prices*; the
+  parts name `microgrid.plant`, the plant model, apart from `microgrid.engine`; the
+  line saying to install from the git repository is gone (it is on PyPI).
+
 ## [0.1.1] - 2026-10-18
 
 ### Changed (documentation)
