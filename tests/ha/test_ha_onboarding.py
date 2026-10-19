@@ -35,7 +35,6 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
 )
 
 from ha_fixtures import HOUR, NOW, REPO, plant_data, set_sources
-from microgrid.cli.signs import Signs
 
 LOADS = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -152,8 +151,10 @@ def test_the_installed_integrations_sources_are_found(hass: HomeAssistant) -> No
     assert solcast.section == {"from": "solcast", "entities": days, "last_polled": polled}
 
     _emhass(hass)
+    _emhass(hass, "sensor.p_pv_forecast")  # published the same way: not a load
     hass.states.async_set("predbat.load_energy_predicted", "3.2", {"results": {}})
     loads = {f.label: f.section for f in found_sources(hass, CONF_LOAD_FORECAST)}
+    assert len(loads) == 2
     assert loads["EMHASS: sensor.p_load_forecast_48h"] == {
         "from": "emhass",
         "entity": "sensor.p_load_forecast_48h",
@@ -227,6 +228,7 @@ async def test_the_energy_dashboard_proposes_what_is_measured(hass: HomeAssistan
     manager = await async_get_manager(hass)
     await manager.async_update(
         {
+            "device_consumption": [],
             "energy_sources": [
                 {
                     "type": "grid",
@@ -255,7 +257,7 @@ async def test_the_energy_dashboard_proposes_what_is_measured(hass: HomeAssistan
                     "stat_soc": "sensor.battery_soc",
                     "capacity": 12.5,
                 },
-            ]
+            ],
         }
     )
     found = await energy_found(hass)
@@ -284,6 +286,15 @@ async def test_the_energy_dashboard_proposes_what_is_measured(hass: HomeAssistan
     assert suggested["meter_grid"] == "sensor.grid_power"
     assert suggested["meter_battery"] == "sensor.battery_power"
     assert suggested["soc"] == "sensor.battery_soc"
+    # Kept, the dashboard's battery sensor reads positive discharging: its sign is set,
+    # with no history to read.
+    result = await hass.config_entries.flow.async_configure(flow, MEASURED_FORM)
+    assert result["step_id"] == "signs"
+    placeholders = result["description_placeholders"]
+    assert placeholders is not None
+    assert placeholders["notes"] == (
+        "- battery is the Energy dashboard's battery power, positive discharging: sign -1"
+    )
 
 
 async def test_signs_are_told_from_the_recorders_history(
@@ -314,6 +325,7 @@ async def test_signs_are_told_from_the_recorders_history(
             ("sensor.battery_power", -charge),  # positive discharging
         ):
             hass.states.async_set(entity, f"{kw * 1000:.1f}", {"unit_of_measurement": "W"})
+        hass.states.async_set("sensor.house_energy", f"{hour:.1f}", {"unit_of_measurement": "kWh"})
         hass.states.async_set(
             "sensor.battery_soc", f"{stored * 100:.2f}", {"unit_of_measurement": "%"}
         )
@@ -323,12 +335,19 @@ async def test_signs_are_told_from_the_recorders_history(
     section = config_flow.measured_from_form(plant, MEASURED_FORM)
     signs = await read_signs(hass, plant, section)
     assert signs is not None, "nothing read"
-    changed = changed_signs(plant, signs)
-    assert changed == {"grid": -1.0, "battery": -1.0}, signs.notes
+    proposed = {name: (sign, signs.why[name]) for name, sign in signs.found.items()}
+    changed = {name: sign for name, (sign, _) in changed_signs(plant, proposed).items()}
+    assert changed == {"grid": -1.0, "battery": -1.0}, signs.undecided
     meters = {m["name"]: m for m in with_signs(plant_data(), plant, changed)["meters"]}
     assert meters["grid"]["sign"] == -1.0
     assert meters["battery"]["sign"] == -1.0
     assert meters["pv"].get("sign", 1.0) == 1.0
+    # A house entity in energy, not power: no signs told, and nothing raised.
+    energy_house = {**section, "house": "sensor.house_energy"}
+    assert await read_signs(hass, plant, energy_house) is None
+    # Under a day of hours recorded: too little to tell.
+    freezer.move_to(start + 10 * HOUR)
+    assert await read_signs(hass, plant, section) is None
 
 
 @LOADS
@@ -338,17 +357,22 @@ async def test_signs_the_records_contradict_are_confirmed_then_applied(
     freezer.move_to(NOW)
     set_sources(hass)
 
-    async def backwards(*_: object) -> Signs:
-        return Signs({"grid": -1.0, "pv": 1.0}, ("grid: reads negative while importing",))
+    async def backwards(*_: object) -> dict[str, tuple[float, str]]:
+        return {
+            "grid": (-1.0, "grid reads negative while importing (the balance)"),
+            "pv": (1.0, "pv reads positive when it makes power"),
+        }
 
-    monkeypatch.setattr(config_flow, "read_signs", backwards)
+    monkeypatch.setattr(config_flow, "proposed_signs", backwards)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     flow = result["flow_id"]
     await hass.config_entries.flow.async_configure(flow, {"next_step_id": "plant_paste"})
     await hass.config_entries.flow.async_configure(flow, {"name": "Home", "plant_toml": PLANT_TOML})
     result = await hass.config_entries.flow.async_configure(flow, MEASURED_FORM)
     assert result["step_id"] == "signs"
-    assert "grid" in result["description_placeholders"]["notes"]
+    placeholders = result["description_placeholders"]
+    assert placeholders is not None
+    assert placeholders["notes"] == "- grid reads negative while importing (the balance): sign -1"
     result = await hass.config_entries.flow.async_configure(flow, {"apply": True})
     assert result["step_id"] == "prices"
     await hass.config_entries.flow.async_configure(flow, {"from": "entity"})
@@ -387,6 +411,42 @@ async def test_a_plant_and_a_sources_file_make_an_entry_once(
     again = await files()
     assert again["type"] is FlowResultType.ABORT
     assert again["reason"] == "already_configured"
+
+    # The grid meter changed in the options: the plant is known by the new one.
+    (entry,) = hass.config_entries.async_entries(DOMAIN)
+    assert entry.unique_id == "sensor.grid_power"
+    hass.states.async_set("sensor.grid_power_2", "-300", {"unit_of_measurement": "W"})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "measured"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**MEASURED_FORM, "meter_grid": "sensor.grid_power_2"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.unique_id == "sensor.grid_power_2"
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@LOADS
+async def test_a_sources_file_without_prices_is_refused(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    freezer.move_to(NOW)
+    set_sources(hass)
+    start = SOURCES_TOML.index("[prices]")
+    end = SOURCES_TOML.index("[load_forecast]")
+    no_prices = SOURCES_TOML[:start] + SOURCES_TOML[end:]
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
+    flow = result["flow_id"]
+    await hass.config_entries.flow.async_configure(flow, {"next_step_id": "files"})
+    result = await hass.config_entries.flow.async_configure(
+        flow, {"name": "Home", "plant_toml": PLANT_TOML, "sources_toml": no_prices}
+    )
+    assert result["errors"] == {"base": "invalid"}
+    placeholders = result["description_placeholders"]
+    assert placeholders is not None and "prices" in placeholders["problems"]
 
 
 def test_emhass_names_its_own_key() -> None:

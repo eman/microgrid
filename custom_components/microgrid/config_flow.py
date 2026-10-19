@@ -34,7 +34,7 @@ from .const import (
     DOMAIN,
     SOURCE_SECTIONS,
 )
-from .discovery import EnergyFound, changed_signs, energy_found, read_signs, with_signs
+from .discovery import EnergyFound, changed_signs, energy_found, proposed_signs, with_signs
 from .found_sources import Found, found_sources
 from .hass_api import HassApi
 from .setup import (
@@ -503,6 +503,17 @@ def energy_section(plant: Plant, found: EnergyFound) -> dict[str, Any]:
     return section
 
 
+def plant_id(plant: Plant, measured: Mapping[str, Any]) -> str | None:
+    """What a plant is known by: its grid meter's entity, else its consumption
+    meter's (the meter in the grid's place)."""
+    meters = measured.get("meters", {})
+    for kind in ("grid", "consumption"):
+        for meter in plant.config.meter_set:
+            if meter.measures == kind and meters.get(meter.name):
+                return str(meters[meter.name])
+    return None
+
+
 def _notes(lines: tuple[str, ...]) -> dict[str, str]:
     return {"notes": "\n".join(f"- {line}" for line in lines)}
 
@@ -514,8 +525,8 @@ class _Sections:
     plant_data: dict[str, Any]
     options: dict[str, Any]
     _reader: dict[str, str]
-    #: The signs the recorder's history proposes, and what it says, to confirm.
-    _signs: tuple[dict[str, float], tuple[str, ...]] | None = None
+    #: The signs to confirm that differ from the plant's, each with why.
+    _signs: dict[str, tuple[float, str]] | None = None
     #: The sources found for each input, as last offered.
     _found: dict[str, list[Found]]
 
@@ -540,22 +551,23 @@ class _Sections:
         """Keep the measured section; confirm the signs the recorder proposes, if any
         differ from the plant's."""
         self.options[CONF_MEASURED] = section
-        signs = await read_signs(self.hass, plant, section)
-        changed = changed_signs(plant, signs) if signs is not None else {}
-        if signs is not None and changed:
-            self._signs = (changed, signs.notes)
+        changed = changed_signs(plant, await proposed_signs(self.hass, plant, section))
+        if changed:
+            self._signs = changed
             return await self.async_step_signs()
         return await self._after_measured()
 
     async def async_step_signs(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The meters whose recorded readings say they read the other way."""
         assert self._signs is not None
-        changed, notes = self._signs
+        changed = self._signs
         if user_input is not None:
             if user_input.get("apply", True):
-                self._keep_plant(with_signs(self.plant_data, self._plant(), changed))
+                signs = {name: sign for name, (sign, _) in changed.items()}
+                self._keep_plant(with_signs(self.plant_data, self._plant(), signs))
             self._signs = None
             return await self._after_measured()
+        notes = tuple(f"{why}: sign {sign:+.0f}" for sign, why in changed.values())
         return self.async_show_form(  # type: ignore[attr-defined,no-any-return]
             step_id="signs",
             data_schema=vol.Schema(
@@ -648,13 +660,9 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         return await self.async_step_prices()
 
     async def _unique(self, plant: Plant, section: Mapping[str, Any]) -> None:
-        """One entry per plant: the plant is known by its grid meter's entity."""
-        meters = section.get("meters", {})
-        grid = next(
-            (meters.get(m.name) for m in plant.config.meter_set if m.measures == "grid"), None
-        )
-        if grid:
-            await self.async_set_unique_id(str(grid))
+        """One entry per plant, known by its grid meter's entity (:func:`plant_id`)."""
+        if (found := plant_id(plant, section)) is not None:
+            await self.async_set_unique_id(found)
             self._abort_if_unique_id_configured()
 
     @staticmethod
@@ -675,6 +683,8 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
             try:
                 plant_data = plant_from_toml(user_input[CONF_PLANT_TOML])
                 options = sources_from_toml(user_input[CONF_SOURCES_TOML])
+                if CONF_PRICES not in options:
+                    raise SetupError(["prices: the sources file names no prices"])
                 setup = read_setup({CONF_PLANT: plant_data}, options, self.hass.config.time_zone)
                 check_measured(setup.plant, options.get(CONF_MEASURED, {}))
                 failed = [
@@ -954,11 +964,13 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
         self._new_plant = data
 
     async def _after_measured(self) -> ConfigFlowResult:
-        if self._new_plant is not None:
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data={**self.config_entry.data, CONF_PLANT: self._new_plant},
-            )
+        # The plant is known by its grid meter: a new one is the entry's new id.
+        known = plant_id(self._plant(), self.options.get(CONF_MEASURED, {}))
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data={**self.config_entry.data, CONF_PLANT: self.plant_data},
+            unique_id=known,
+        )
         return self._save()
 
     async def async_step_plant(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

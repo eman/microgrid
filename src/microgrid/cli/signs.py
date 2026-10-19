@@ -53,8 +53,10 @@ class Signs:
 
     #: Each meter's sign where it was told apart (1 or -1), by the meter's name.
     found: Mapping[str, float]
-    #: For a person: how each sign was decided, and the meters left undecided.
-    notes: tuple[str, ...]
+    #: For a person, by the meter's name: what its records show, for each sign found.
+    why: Mapping[str, str]
+    #: For a person: the meters whose records told nothing, and why.
+    undecided: tuple[str, ...]
 
 
 def _energy(values: Slots, hours: float) -> float:
@@ -77,6 +79,7 @@ def meter_signs(
     ``hours`` long), the SOC's slot means (a fraction) and the house load's where
     metered. A meter without readings is left out."""
     found: dict[str, float] = {}
+    why: dict[str, str] = {}
     notes: list[str] = []
     by_kind: dict[str, list[Meter]] = {}
     for meter in meters:
@@ -90,8 +93,8 @@ def meter_signs(
                 notes.append(f"{meter.name}: too little recorded to tell its sign")
                 continue
             found[meter.name] = 1.0 if energy > 0 else -1.0
-            if energy < 0:
-                notes.append(f"{meter.name}: reads negative when it {_POSITIVE[kind]}")
+            reads = "positive" if energy > 0 else "negative"
+            why[meter.name] = f"{meter.name} reads {reads} when it {_POSITIVE[kind]}"
 
     batteries = by_kind.get("battery", [])
     battery = batteries[0] if batteries else None
@@ -101,8 +104,8 @@ def meter_signs(
             notes.append(f"{battery.name}: the SOC moved too little to tell its sign")
         else:
             found[battery.name] = sign
-            if sign < 0:
-                notes.append(f"{battery.name}: reads negative while charging")
+            reads = "positive" if sign > 0 else "negative"
+            why[battery.name] = f"{battery.name} reads {reads} while the SOC rises"
 
     grids = by_kind.get("grid", [])
     if grids:
@@ -112,9 +115,9 @@ def meter_signs(
             notes.append(f"{grid.name}: the balance does not tell its sign")
         else:
             found[grid.name] = sign
-            if sign < 0:
-                notes.append(f"{grid.name}: reads negative while importing")
-    return Signs(found, tuple(notes))
+            reads = "positive" if sign > 0 else "negative"
+            why[grid.name] = f"{grid.name} reads {reads} while importing (the balance)"
+    return Signs(found, why, tuple(notes))
 
 
 def _battery_sign(values: Slots, soc: Slots | None) -> float | None:

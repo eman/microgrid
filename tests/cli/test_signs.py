@@ -45,7 +45,7 @@ def test_meters_in_the_plants_convention_keep_their_signs() -> None:
     readings, soc, house = _day()
     signs = meter_signs(METERS, readings, hours=HOURS, soc=soc, house=house)
     assert signs.found == {"pv": 1.0, "battery": 1.0, "grid": 1.0}
-    assert signs.notes == ()
+    assert signs.undecided == ()
 
 
 def test_a_meter_read_backwards_is_found() -> None:
@@ -54,7 +54,8 @@ def test_a_meter_read_backwards_is_found() -> None:
     readings["battery"] = _flip(readings["battery"])  # positive discharging, as HA's
     signs = meter_signs(METERS, readings, hours=HOURS, soc=soc, house=house)
     assert signs.found == {"pv": 1.0, "battery": -1.0, "grid": -1.0}
-    assert any("grid" in note for note in signs.notes)
+    assert signs.why["grid"] == "grid reads negative while importing (the balance)"
+    assert signs.why["battery"] == "battery reads negative while the SOC rises"
 
 
 def test_the_grid_is_told_without_a_house_meter() -> None:
@@ -69,11 +70,11 @@ def test_a_battery_that_held_still_is_left_undecided() -> None:
     soc: list[float | None] = [0.5] * len(readings["pv"])
     signs = meter_signs(METERS, readings, hours=HOURS, soc=soc, house=house)
     assert "battery" not in signs.found
-    assert any("battery" in note and "too little" in note for note in signs.notes)
+    assert any("battery" in note and "too little" in note for note in signs.undecided)
 
 
 def test_too_little_recorded_says_nothing() -> None:
     quiet: dict[str, list[float | None]] = {"pv": [0.0] * 24, "grid": [None] * 24}
     signs = meter_signs(METERS, quiet, hours=HOURS)
     assert signs.found == {}
-    assert len(signs.notes) == 2
+    assert len(signs.undecided) == 2

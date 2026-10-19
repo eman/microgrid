@@ -17,6 +17,7 @@ from homeassistant.components.energy.data import async_get_manager
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from microgrid.cli.history import LotsError
 from microgrid.cli.signs import Signs, meter_signs
 from microgrid.engine.series import means, slot_floor
 from microgrid.engine.units import UnitError, convert
@@ -28,6 +29,9 @@ _LOGGER = logging.getLogger(__name__)
 
 #: How far back the meters are read to tell their signs.
 SIGNS_OVER: Final = timedelta(days=2)
+#: Hours with every meter recorded the signs need: a day, so the PV, the battery's
+#: charge and discharge, and night's imports each show.
+SIGNS_NEED: Final = 24
 _HOUR: Final = timedelta(hours=1)
 
 
@@ -134,10 +138,13 @@ async def read_signs(
 
     try:
         readings, soc, house = await run_in_recorder(hass, read)
-    except (UnitError, ValueError) as err:
+    except (LotsError, UnitError, ValueError) as err:  # a unit that is not power, say
         _LOGGER.debug("signs not read: %s", err)
         return None
-    if not any(v is not None for values in readings.values() for v in values):
+    complete = sum(
+        1 for slot in zip(*readings.values(), strict=True) if all(v is not None for v in slot)
+    )
+    if complete < SIGNS_NEED:
         return None
     return meter_signs(plant.config.meter_set, readings, hours=1.0, soc=soc, house=house)
 
@@ -156,7 +163,48 @@ def with_signs(
     return found
 
 
-def changed_signs(plant: Plant, signs: Signs) -> dict[str, float]:
-    """The signs found that differ from the plant's."""
+def energy_signs(
+    plant: Plant, measured: Mapping[str, Any], found: EnergyFound
+) -> dict[str, tuple[float, str]]:
+    """The signs the Energy dashboard's convention gives the meters ``measured`` reads
+    from its sensors: the grid positive importing (the plant's), the battery positive
+    discharging (the plant's opposite)."""
+    entities: Mapping[str, str] = measured.get("meters", {})
+    signs: dict[str, tuple[float, str]] = {}
+    for meter in plant.config.meter_set:
+        entity = entities.get(meter.name)
+        if entity is None:
+            continue
+        if meter.measures == "battery" and entity == found.battery:
+            signs[meter.name] = (
+                -1.0,
+                f"{meter.name} is the Energy dashboard's battery power, positive discharging",
+            )
+        elif meter.measures == "grid" and entity == found.grid:
+            signs[meter.name] = (
+                1.0,
+                f"{meter.name} is the Energy dashboard's grid power, positive importing",
+            )
+    return signs
+
+
+async def proposed_signs(
+    hass: HomeAssistant, plant: Plant, measured: Mapping[str, Any]
+) -> dict[str, tuple[float, str]]:
+    """Each meter's sign and why, where something says: the Energy dashboard's
+    convention for its own sensors, then the recorder's history where it tells."""
+    proposed = energy_signs(plant, measured, await energy_found(hass))
+    signs = await read_signs(hass, plant, measured)
+    if signs is not None:
+        proposed |= {name: (sign, signs.why[name]) for name, sign in signs.found.items()}
+    return proposed
+
+
+def changed_signs(
+    plant: Plant, proposed: Mapping[str, tuple[float, str]]
+) -> dict[str, tuple[float, str]]:
+    """The signs proposed that differ from the plant's."""
     configured = {meter.name: meter.sign for meter in plant.config.meter_set}
-    return {name: sign for name, sign in signs.found.items() if configured.get(name, 1.0) != sign}
+    return {
+        name: found for name, found in proposed.items() if configured.get(name, 1.0) != found[0]
+    }

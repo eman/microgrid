@@ -203,11 +203,15 @@ def _solcast(hass: HomeAssistant) -> Iterator[Found]:
 
 
 def _emhass(hass: HomeAssistant) -> Iterator[Found]:
-    """A sensor whose ``forecasts`` rows hold ``date`` and a value keyed by its own
-    object id (EMHASS names each row's value after the entity it publishes)."""
+    """EMHASS's load forecast: a sensor named for it (``p_load_forecast``, under any
+    prefix or suffix) whose ``forecasts`` rows hold ``date`` and a value keyed by its own
+    object id. EMHASS publishes its PV, battery and grid forecasts the same way, so the
+    name tells the load's apart."""
     for state in hass.states.async_all("sensor"):
         rows = state.attributes.get("forecasts")
         key = state.object_id
+        if "load_forecast" not in key:
+            continue
         if not isinstance(rows, list) or not rows:
             continue
         if not all(isinstance(row, dict) and "date" in row and key in row for row in rows[:2]):

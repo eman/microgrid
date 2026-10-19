@@ -237,7 +237,7 @@
       },
       "signs": {
         "title": "Meter signs",
-        "description": "What the recorder kept over the last two days says some meters read the other way from the plant file:\n{notes}\n\nApply the signs the records show?",
+        "description": "These meters read the other way from the plant file:\n{notes}\n\nSet their signs in the plant file?",
         "data": {
           "apply": "Apply these signs"
         }
@@ -248,7 +248,8 @@
       "read_failed": "The source could not be read: {error}"
     },
     "abort": {
-      "already_configured": "This plant is already set up (its grid meter is another entry's)."
+      "already_configured": "This plant is already set up (its grid meter is another entry's).",
+      "already_in_progress": "This plant is already being set up."
     }
   },
   "options": {
@@ -462,7 +463,7 @@
       },
       "signs": {
         "title": "Meter signs",
-        "description": "What the recorder kept over the last two days says some meters read the other way from the plant file:\n{notes}\n\nApply the signs the records show?",
+        "description": "These meters read the other way from the plant file:\n{notes}\n\nSet their signs in the plant file?",
         "data": {
           "apply": "Apply these signs"
         }
