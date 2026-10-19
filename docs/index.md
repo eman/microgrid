@@ -5,8 +5,7 @@ one more kWh costs the site, slot by slot over the next two days, and what a kWh
 worth by source. A flexible load, or a scheduler for one, reads those prices to decide
 when to run.
 
-It is a Python library. **Data in, data out:** a client hands it the plant's
-configuration and its inputs as time series, and gets prices back.
+It is a Python library: it takes the plant's description and its inputs as time series.
 
 ```mermaid
 flowchart LR

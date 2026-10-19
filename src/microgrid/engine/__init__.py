@@ -1,8 +1,6 @@
 """The microgrid engine: the model that values energy by time and source.
 
-Pure: no I/O, no network, no wire format. Clients (the CLI, a
-service, scripts) hand it data and get data back; it has
-no dependencies. The contract is what this module
+It has no dependencies. The contract is what this module
 exports; every other module (``_value``, ``plant._paths``, ...) is private.
 
     engine = Engine(EngineConfig(plant=plant.Plant(plant.PlantConfig(tz=..., pv=..., ...))))

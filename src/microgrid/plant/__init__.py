@@ -1,7 +1,7 @@
 """The plant model and its simulator, on their own (``microgrid.plant``).
 
-A plant is described by a :class:`PlantConfig` (``plant/2``), given as data: the model
-does no I/O to receive it. :class:`Plant` is that plant behind the port
+A plant is described by a :class:`PlantConfig` (``plant/2``), given as data.
+:class:`Plant` is that plant behind the port
 (:class:`~microgrid.plant.port.PlantModel`): one configurable model, not one class per
 topology, running every configuration through one dispatch. ``Plant.project`` projects
 the slots it is given from a state of charge, PV and load, and returns their flows
