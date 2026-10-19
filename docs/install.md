@@ -31,7 +31,7 @@ This installs one distribution, `microgrid`, with three packages and one command
 
 | | What |
 |---|---|
-| `microgrid.plant` | the plant model, on its own |
+| `microgrid.plant` | the plant model |
 | `microgrid.engine` | the prices: import it to value your plant from Python |
 | `microgrid.cli` | the command's code, and the `dataset/1` reader and writer |
 | `microgrid` | the command: the library run on a dataset of files |

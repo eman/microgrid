@@ -2,8 +2,7 @@
 
 `microgrid` is a library that models a solar + battery plant (`microgrid.plant`) and
 produces **marginal energy prices** from it (`microgrid.engine`): what one more kWh
-costs, slot by slot over a horizon, and the value of energy by source. The plant model
-also stands alone, without the price code.
+costs, slot by slot over a horizon, and the value of energy by source.
 
 You describe the plant (`plant/2`: PV of either coupling, a battery on its own inverter
 or on a hybrid's DC bus, loads on either bus, the grid's limits and charge windows) and

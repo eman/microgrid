@@ -4,6 +4,14 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-18
+
+### Changed (documentation)
+
+- The README, the documentation's home page, the install page and the package
+  docstrings no longer say that the plant model stands alone; how to use it without the
+  prices is its how-to (*Use the plant model on its own*).
+
 ## [0.1.2] - 2026-10-18
 
 ### Fixed (documentation)
