@@ -4,7 +4,7 @@ Each input is read from its source once, at ``now``: a forecast is one issue rec
 now; a measured value is the value in force, from when it changed. An input whose source
 is not configured, or cannot be read, is left out and the reason kept
 (:attr:`Read.problems`): the valuation then names it as a cause, as it would any input it
-cannot use. Nothing is guessed in its place.
+cannot use.
 """
 
 from __future__ import annotations

@@ -18,8 +18,6 @@ Each is the plain data :meth:`PlantConfig.from_mapping` reads, as a client would
 pass it from a file or a config entry: :func:`example_mapping` gives a copy, and
 :func:`example_plant` the configuration, in a given time zone (the windows are local
 times). :data:`EXAMPLE_NAMES` names them. The engine's tests use them.
-
-Pure: no I/O. The data is here, not in files, because the engine reads none.
 """
 
 from __future__ import annotations

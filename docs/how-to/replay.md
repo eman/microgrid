@@ -3,9 +3,9 @@
 A replay values past moments from the inputs as they were known then, and scores each
 valuation against what the meters recorded afterwards. It is how a change to the plant
 file, the engine's settings or the model itself is judged: replay it over recorded
-inputs, rather than waiting days to see it live.
+inputs.
 
-## Why a replay is honest
+## What a replay reads
 
 `Engine.value(inputs, at=t)` reads only what was received by `t`: the forecast issues
 received by then, the measured values in force then. So a replay at a past moment is

@@ -110,7 +110,7 @@ is a replay that cannot look ahead, by construction.
 - **Intervals that tile the slot** (each wholly inside it, together covering it) give
   their mean, weighted by length: 5-minute prices over 10-minute slots.
 - **A slot not wholly covered** (before the first interval, in a gap, past the end) is
-  unknown, never guessed.
+  unknown.
 - **An interval that crosses the slot's edge without holding the whole slot** (15-minute
   prices over 10-minute slots) is refused: that source needs another slot length. For
   PV or load it makes the input unusable; for prices it prices no slot, so the
@@ -125,5 +125,5 @@ own holding, staleness or alignment: `value_at`, `means` and `signed_means`
 wherever any changes), `alive` (where a heartbeat shows the path was up),
 `counter_delta` (a cumulative counter across its resets), `align`, `compose`,
 `is_stale`, `prune` and `to_forecast` (a recorded sensor as a forecast's intervals).
-None assumes a slot length or hourly prices: each takes the slot it works on. See the
+Each takes the slot it works on. See the
 [API reference](../reference/api/series.md).

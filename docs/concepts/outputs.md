@@ -71,8 +71,7 @@ Each is a share of the scenario weight, 0 to 1.
   the grid serves the house in it (PV does not cover it) and its import price is above
   the cheapest import in the 24 hours from this slot. The **expensive hours ahead** are
   the first unbroken run of expensive slots at or after this one. Covered means the house
-  does not import from this slot (or the run's start, if later) to the run's end. The run
-  is read from the price curve, whatever its shape.
+  does not import from this slot (or the run's start, if later) to the run's end.
 
 ## Unserved
 

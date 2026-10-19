@@ -1,6 +1,6 @@
-# Describe your plant
+# Describe a plant
 
-The plant model takes your plant's topology and parameters from a `plant/2` file, built
+The plant model takes a plant's topology and parameters from a `plant/2` file, built
 up here part by part. The [`plant/2` reference](../reference/plant.md) lists every
 field; the [glossary](../glossary.md) defines the hardware terms.
 
@@ -84,7 +84,7 @@ working_kw = 0.03
   from the meters, with how the loss grows with power (`loss_charge_per_kw`,
   `loss_discharge_per_kw`; [Fit the battery's conversion](fit-battery.md)).
 - **The wear** (`wear_charge_per_kwh`, `wear_discharge_per_kwh`) is what a kWh
-  through the battery costs it, per AC kWh each way, in your prices' currency. It is the
+  through the battery costs it, per AC kWh each way, in the prices' currency. It is the
   hurdle a charge or a discharge has to clear ([What a stored kWh is
   worth](../methodology/stored-value.md)). **The default is 0, which prices cycling as
   free; set it.** An estimate: the battery's price divided by its lifetime throughput
@@ -213,7 +213,7 @@ start_below_soc = 0.8
 The DC-bus loads' forecast comes in separately (`dc_load_forecast`). The **hold rule**
 describes a plant that protects its battery during a DC-bus load's session: a session
 (the DC-bus loads drawing more than 1 kW) that starts below 80 % keeps the battery from
-discharging until it ends, and the grid serves the load. Leave it out if your plant
+discharging until it ends, and the grid serves the load. Leave it out if the plant
 drains the battery into the load.
 
 ## The grid's limits
@@ -272,7 +272,7 @@ that window.
 
 Without `[[meters]]`, the plant reads the default set: `pv`, `grid`, `battery` (at its DC
 side) and `dc_load` where there is one, each positive for PV made, importing, charging or
-drawing. Name your own when your meters differ, for example a grid meter that reads
+drawing. Name the meters when they differ, for example a grid meter that reads
 exports as positive:
 
 ```toml
@@ -302,5 +302,5 @@ there is one, the DC-bus loads where there are any, and every array's PV.
   ([Fit the battery's conversion](fit-battery.md)).
 
 Only one topology has been checked against a real plant's meters so far
-([Scope](../methodology/scope.md#what-it-cant-model)); `check-plant` on yours is how you
-find out.
+([Scope](../methodology/scope.md#what-it-cant-model)); `check-plant` on a plant's
+meters shows whether the model fits it.

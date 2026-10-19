@@ -5,8 +5,8 @@ give. The library ships the JSON Schema as a data file
 (`microgrid/engine/schemas/valuation-2.schema.json`); `microgrid schema` prints it, and
 the library's tests check every output against it.
 
-Values are unrounded. Prices are in the input prices' currency per kWh, whatever the
-field names say ([Currency](../concepts/units.md#currency)); power in kW; weights and
+Values are unrounded. Prices are in the input prices' currency per kWh
+([Currency](../concepts/units.md#currency)); power in kW; weights and
 certainties 0-1; times ISO 8601 with their offset; enums their string values. Each
 field's meaning is defined once in [Outputs](../concepts/outputs.md).
 

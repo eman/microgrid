@@ -2,8 +2,8 @@
 
 A dataset is a directory of series in the library's own terms, so every `microgrid`
 command runs without the plant it came from. The format is the library's
-(`microgrid.cli.dataset`), not any integration's: whatever recorded the data, a
-client writes it out as these files. [Build a dataset](../how-to/build-dataset.md)
+(`microgrid.cli.dataset`): whatever recorded the data, a client writes it out as
+these files. [Build a dataset](../how-to/build-dataset.md)
 walks through making one.
 
 ```text
@@ -157,4 +157,4 @@ would be a new format.
 `pv_forecast.<array>` joins the entry name and the array's name with a dot, for a plant
 whose arrays have both couplings. `plant/2`'s default PV meters for such a plant are
 named `pv:<array>`, with a colon, which a dataset name cannot hold: name those meters
-yourself in `plant/2` (`[[meters]]`, for example `pv_roof`) to record them in a dataset.
+in `plant/2` (`[[meters]]`, for example `pv_roof`) to record them in a dataset.

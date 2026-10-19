@@ -1,13 +1,13 @@
-# Get prices from your own sources
+# Get prices from live sources
 
-`microgrid now` values your plant at this moment, reading each input from the provider
+`microgrid now` values a plant at this moment, reading each input from the provider
 you name in a [`sources/1`](../configuration/data-sources.md) file. You need the
-`sources` extra ([Install](../install.md#the-sources-extra)), a `plant/2` file for your
-plant ([Describe your plant](describe-plant.md)), and a source for each input.
+`sources` extra ([Install](../install.md#the-sources-extra)), a `plant/2` file for the
+plant ([Describe a plant](describe-plant.md)), and a source for each input.
 
 ## 1. Name a source for each input
 
-Put `sources.toml` beside your `plant.toml`. Each input names its provider: a tool's
+Put `sources.toml` beside `plant.toml`. Each input names its provider: a tool's
 integration in Home Assistant, or any entity whose attribute holds the forecast. This
 one reads prices from an entity, the PV forecast from Solcast's integration and the
 load forecast from EMHASS:
@@ -39,7 +39,7 @@ last_polled = "sensor.solcast_pv_forecast_api_last_polled"
 from = "emhass"
 ```
 
-Use your own entity names: none is assumed. Put a long-lived access token in the
+Use the site's own entity names. Put a long-lived access token in the
 environment, never in the file:
 
 ```sh
@@ -109,9 +109,9 @@ slot                     import   export  marginal  surplus kW  regime
 The input that could not be read is named on standard error, and the valuation falls
 back to the import price ([`fallback_import`](../reference/causes.md#kinds)), naming
 its causes (`battery_soc`, and `work_mode` for [dispatch as
-modelled](../concepts/inputs.md#dispatch-as-modelled)) rather than guessing. With
+modelled](../concepts/inputs.md#dispatch-as-modelled)). With
 `[measured]` in place, the same command gives the model's valuation (`stored_value_v1`), printed as
-`value` prints one ([Run your first valuation](first-valuation.md#4-read-the-result)).
+`value` prints one ([Run a first valuation](first-valuation.md#4-read-the-result)).
 
 To keep what was read, add `--save DIR`: it writes the inputs as a
 [dataset](../reference/dataset.md) with the plant's

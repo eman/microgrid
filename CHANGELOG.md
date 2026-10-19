@@ -4,6 +4,23 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+### Changed (documentation)
+
+- The documentation and the module docstrings no longer rebut what nobody said:
+  denials, disclaimers and contrasts with an alternative the text never raised are gone
+  ("not the average one", "never guessed", "not one class per topology", "fetches
+  none", "Pure: no I/O", ...). A contrast stays where the text argues it, as *The
+  marginal price* does the average cost.
+  - *Scope* keeps what a client brings and what the library can't model; its *Prices
+    energy, models no load* and *No I/O* sections are gone.
+  - *The plant model*'s section is *It models the plant's own rules*; *Replay*'s is
+    *What a replay reads*; *The make-up rule*'s *What the rule does not decide* is
+    *Grid charging*. R-5 is *Marginal*.
+  - Nothing is "yours to decide", "yours to add" or "the client's to correct": each
+    says who does what. No "your": *Describe a plant*, *Run a first valuation*, *Write
+    a plant model*, *Get prices from live sources*, and the text speaks of a plant, the
+    meters, the recorder.
+
 ## [0.1.3] - 2026-10-18
 
 ### Changed (documentation)

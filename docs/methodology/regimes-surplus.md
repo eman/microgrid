@@ -22,7 +22,7 @@ In order, the first that holds:
 Surplus is what the projection exports or curtails, not PV minus load. The difference is
 the battery: on a morning when the battery is charging with room to spare, PV exceeds
 the load, yet nothing is spare, because every kWh is going into the battery that the
-house will draw on tonight. Taking it is a cost the price captures, not free power.
+house will draw on tonight. Taking it is a cost the price captures.
 Battery export is left out for the same reason: it is stored energy, priced, not spare
 PV.
 

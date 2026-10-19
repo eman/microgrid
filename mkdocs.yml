@@ -138,11 +138,11 @@ nav:
       - Outputs: concepts/outputs.md
   - How-to:
       - how-to/index.md
-      - Run your first valuation: how-to/first-valuation.md
-      - Get prices from your own sources: how-to/own-sources.md
+      - Run a first valuation: how-to/first-valuation.md
+      - Get prices from live sources: how-to/own-sources.md
       - Configure a source: how-to/configure-source.md
       - Build a dataset: how-to/build-dataset.md
-      - Describe your plant: how-to/describe-plant.md
+      - Describe a plant: how-to/describe-plant.md
       - Tune the engine: how-to/tune-engine.md
       - Use the library from Python: how-to/python.md
       - Use the prices in a scheduler: how-to/scheduler.md
@@ -151,7 +151,7 @@ nav:
       - Check a plant model against its meters: how-to/check-plant.md
       - Read the battery's lots: how-to/ledger.md
       - Fit the battery's conversion: how-to/fit-battery.md
-      - Write your own plant model: how-to/own-plant-model.md
+      - Write a plant model: how-to/own-plant-model.md
       - Use the plant model on its own: how-to/plant-alone.md
   - Configuration:
       - Data sources: configuration/data-sources.md

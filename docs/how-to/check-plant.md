@@ -62,7 +62,7 @@ routing, model -> meters (slots):
   meters said.
 
 The example dataset was made by the plant model itself, so it agrees with itself almost
-everywhere. Your plant's will not, and the differences say what to fix.
+everywhere. A real plant's will not, and the differences say what to fix.
 
 ## What to do with the result
 
@@ -73,11 +73,11 @@ everywhere. Your plant's will not, and the differences say what to fix.
   [`cover_until` and `timing`](../reference/plant.md#dispatchgrid_charge-a-grid-charge-window)).
 - **Import or export off by a steady amount**: a load the plant serves that the house
   meter does not see, or the inverter's own draw (`standby_kw`, `working_kw`).
-- **A topology that does not fit at all**: see [Describe your plant](describe-plant.md),
-  or [write your own plant model](own-plant-model.md).
+- **A topology that does not fit at all**: see [Describe a plant](describe-plant.md),
+  or [write a plant model](own-plant-model.md).
 
 Try a candidate without changing the dataset's file: `--plant candidate.toml`.
 
-The command reports measures; it does not pass or fail a plant. Which days a model is
-not meant to describe (a day the plant was serviced, a day it ran another mode), and the
-pass marks a model must meet before you trust its prices, are yours to add.
+The command reports measures; it does not pass or fail a plant. You add the days a
+model is not meant to describe (a day the plant was serviced, a day it ran another
+mode) and the pass marks a model must meet before you trust its prices.

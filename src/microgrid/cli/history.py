@@ -13,9 +13,9 @@ battery and a DC-bus load, allocated at every change, only while the path was al
 within the heartbeat's limit where the bindings name one, else wherever each series is
 known), the SOC read at each slot boundary, and the prices each slot was charged at as
 the time-weighted mean of the recorded price in force over it (``series.means``): any
-price resolution, on any slot, and no price read before it took effect. A recorder that
-writes a change late (a sensor updating seconds after the hour) is the client's to
-correct at its edge, as for any series. A PV lot's basis is the export price when it was
+price resolution, on any slot, and no price read before it took effect. A client corrects
+a recorder that writes a change late (a sensor updating seconds after the hour) at
+its edge, as for any series. A PV lot's basis is the export price when it was
 charged (what the site gave up to store it), a grid lot's the import price
 (docs/methodology/lots.md). Every function takes the slot it works on
 (``EngineConfig.slot``; :data:`~microgrid.engine.series.SLOT` by default).

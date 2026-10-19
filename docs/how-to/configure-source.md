@@ -3,7 +3,7 @@
 One section of `sources.toml` per input, each naming its provider with `from`. Every key
 is in the [Data sources reference](../configuration/data-sources.md). Sections that read
 Home Assistant need `[home_assistant]` and a token in the environment
-([Get prices from your own sources](own-sources.md#1-name-a-source-for-each-input)).
+([Get prices from live sources](own-sources.md#1-name-a-source-for-each-input)).
 Check each with `microgrid sources --sources sources.toml`.
 
 ## Any entity
@@ -33,7 +33,7 @@ time, leave `end_key` out and set `period_minutes`. A PV forecast names
 
 **Check the entity first.** Look at its attributes (Home Assistant's developer tools
 show them). An integration whose entities hold only daily energy totals, or only the
-power now, has no rows to read; whether yours does is for you to check.
+power now, has no rows to read.
 
 ## Presets for named tools
 
@@ -63,7 +63,7 @@ entities = [
 last_polled = "sensor.solcast_pv_forecast_api_last_polled"
 ```
 
-List the daily forecast entities your integration created, today's first. Today,
+List the daily forecast entities the integration created, today's first. Today,
 tomorrow and day 3 cover a 48-hour horizon from any time. `last_polled` gives the
 forecast's age.
 
@@ -74,8 +74,8 @@ forecast's age.
 from = "emhass"
 ```
 
-EMHASS publishes under a fixed name, so the defaults usually fit. If yours publishes
-under another entity or with a 15-minute optimisation step:
+EMHASS publishes under a fixed name, so the defaults usually fit. If an EMHASS
+instance publishes under another entity or with a 15-minute optimisation step:
 
 ```toml
 [load_forecast]

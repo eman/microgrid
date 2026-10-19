@@ -43,7 +43,7 @@ Every command that reads the meters (`value` and `live` for the battery's lots, 
 `check-plant`, `ledger`, `now`) also takes these; `fit-battery` accepts them, but reads
 no heartbeat, so they do not change its result. Each defaults to the dataset's
 [`limits`](dataset.md#limits), else the library's default, measured on one plant: set
-your recorder's. Which dataset entries each command needs is in
+the recorder's. Which dataset entries each command needs is in
 [Inputs](../concepts/inputs.md#which-command-needs-which).
 
 

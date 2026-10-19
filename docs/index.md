@@ -9,7 +9,7 @@ It is a Python library: it takes the plant's description and its inputs as time 
 
 ```mermaid
 flowchart LR
-    subgraph in["Inputs (time series, from any source)"]
+    subgraph in["Inputs (time series)"]
         prices["import and export prices"]
         pv["PV forecast<br/>(quantiles)"]
         load["load forecast"]
@@ -28,7 +28,7 @@ defined in [Outputs](concepts/outputs.md).
 
 ## How it prices
 
-- **It prices the next kWh, not the average one.** A kWh used in a slot comes from one
+- **It prices the next kWh.** A kWh used in a slot comes from one
   source: PV that would have been exported, the grid, or the battery. The price is that
   source's: the export given up, the import, or the battery's energy. The price follows
   the plant forward to find out which, slot by slot.
@@ -40,17 +40,16 @@ defined in [Outputs](concepts/outputs.md).
 - **It prices the weather's uncertainty.** The price is an average over PV scenarios,
   published with a pessimistic case and the chance it holds.
 - **It degrades conservatively.** A missing or stale input moves the price toward the
-  import price and says why. A stale discount is never reused.
+  import price and says why.
 
 ## Where to start
 
-- **Try it.** [Install](install.md), then [run your first
-  valuation](how-to/first-valuation.md) on the example dataset: one synthetic week of an
+- **Try it.** [Install](install.md), then [run a first valuation](how-to/first-valuation.md) on the example dataset: one synthetic week of an
   example plant, no hardware needed.
 - **Understand it.** [The methodology](methodology/index.md), from "why one more kWh"
   to what a battery kWh costs and the PV scenarios.
-- **Use it on your plant.** [Describe your plant](how-to/describe-plant.md), [build a
-  dataset](how-to/build-dataset.md) from your own records, or [call it from
+- **Use it on a plant.** [Describe a plant](how-to/describe-plant.md), [build a
+  dataset](how-to/build-dataset.md) from a plant's records, or [call it from
   Python](how-to/python.md).
 - **Look something up.** The [reference](reference/index.md): the formats, the
   `microgrid` command and the API.

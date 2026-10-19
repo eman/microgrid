@@ -88,6 +88,6 @@ scheduler that the risk is not there.
 
 ## Where the PV forecast comes from
 
-Any source: the library takes a series of forecast issues and fetches none. A forecast
+Any source: the library takes a series of forecast issues. A forecast
 with three quantiles gives the scenarios their spread; a single value gives one day.
 [Data sources](../configuration/data-sources.md) lists the providers.

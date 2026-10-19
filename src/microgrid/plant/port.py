@@ -2,18 +2,14 @@
 
 The price model needs to know how the plant will behave (its flows over the
 horizon, and how they change with more load) and a few things about its battery. It
-asks them here, and never what the plant is: topology, the
-inverter's conversion, the dispatch and the meters are a plant model's. The library's
+asks them here; topology, the inverter's conversion, the dispatch and the meters are a
+plant model's. The library's
 ``microgrid.plant.Plant`` is one, for any topology ``plant/2`` describes; a
 client's own model is another (``microgrid.engine.extend``, checked by
 ``microgrid.engine.testing``).
 
-**Every comparison keeps today's floating-point form,** so the predicates take a
-margin rather than return a limit to compare against: written another way, an
-answer could differ in the last bit, and the output must not.
-
-Neutral, like :mod:`microgrid.plant.flows`: it imports neither a plant
-model nor the price model. Pure: no I/O.
+**The predicates take a margin** and do the comparison themselves, so every plant
+model compares in the same floating-point form and the outputs agree to the last bit.
 """
 
 from __future__ import annotations

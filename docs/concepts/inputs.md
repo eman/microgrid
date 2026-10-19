@@ -49,7 +49,7 @@ What one more kWh imported costs and one more exported earns, per interval: `Pri
 p_export)`. Either may be negative, and the rule carries the sign through: with a
 negative export price, a kWh that would have spilled earns money when a load uses it,
 and its price is negative. Any shape works: a flat rate, time-of-use bands, a
-dynamic price that changes every interval. The currency is yours ([Units](units.md)).
+dynamic price that changes every interval. Prices may be in any currency ([Units](units.md)).
 
 ## PV forecast
 
@@ -86,7 +86,7 @@ then is exported; the battery serves the house before the grid; plus whatever wi
 it does not: an outside controller drives the battery, or the inverter is in a mode the
 model does not describe, such as forced charging or backup only. False or unknown makes a
 valuation fall back, because the model would be predicting a plant that is not running.
-If your inverter only ever runs one matching mode, a constant `true` series is right.
+If the inverter only ever runs one matching mode, a constant `true` series is right.
 
 ## The battery's lots
 
@@ -132,7 +132,7 @@ so a steady SOC and a dead connection look the same in the record; the heartbeat
 them apart. The commands judge the meters unknown once it has been silent longer than
 the record's limit: `--stale-after`, else the dataset's
 [`limits`](../reference/dataset.md#limits), else 3 minutes (measured on one plant whose
-heartbeat reported every few seconds; set your recorder's).
+heartbeat reported every few seconds; set the recorder's).
 
 **Without a heartbeat**, each series is trusted as far as the dataset says it is known
 (`known_until`), and a gap in it is a sample with no value. That suits a record you know

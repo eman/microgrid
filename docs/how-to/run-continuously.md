@@ -46,13 +46,13 @@ valid_until=...)` over the measured series, or, for readings that arrive one at 
 
 When the heartbeat has been silent longer than you tolerate (`microgrid live`: the
 dataset's `limits`, else 3 minutes, measured on one plant whose heartbeat reports every
-few seconds), pass your own cause, for example `external=["telemetry"]`. The live
-value then falls back to the import price and keeps your cause beside the engine's.
+few seconds), pass a cause of its own, for example `external=["telemetry"]`. The live
+value then falls back to the import price and keeps that cause beside the engine's.
 
 ## A minimal client
 
 Sources here are stand-ins (one issue of each forecast, a steady reading); replace them
-with yours.
+with the real sources.
 
 ```python
 from datetime import UTC, datetime, timedelta
@@ -94,7 +94,7 @@ class Record:
         )
 
 
-# A stand-in for your sources: one issue of each forecast, and the SOC.
+# A stand-in for the sources: one issue of each forecast, and the SOC.
 start = datetime(2026, 10, 22, 6, 0, tzinfo=UTC)
 slots = [start + timedelta(minutes=30 * k) for k in range(96)]
 
@@ -110,7 +110,7 @@ record.issue("pv", flat(Quantiles({0.1: 0.5, 0.5: 1.5, 0.9: 2.0}), "my-pv"), sta
 record.issue("load", flat(0.6, "my-load"), start)
 record.reading("soc", 0.5, start)
 record.reading("dispatch", True, start)
-# The battery's lots, from your ledger: here 6 stored kWh of solar, charged at export 0.07.
+# The battery's lots, from the ledger: here 6 stored kWh of solar, charged at export 0.07.
 solar = Amount(6.0, 6.0 / 0.96 * 0.07)
 record.reading("lots", Lots(start, {Source.PV: solar}, pool=solar), start)
 

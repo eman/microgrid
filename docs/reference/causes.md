@@ -60,8 +60,7 @@ where the valuation it runs again fell back, that valuation's causes.
 ## The client's own causes, and mistakes
 
 A client passes its own causes as `external` (`Engine.live(..., external=[...])`); any
-makes the live value `fallback_import`, and they are kept beside the engine's, never in
-their place. The `microgrid` command names one of its own beside a valuation's:
+makes the live value `fallback_import`, and they are kept beside the engine's. The `microgrid` command names one of its own beside a valuation's:
 `dc_load_forecast`, where it valued a plant's DC-bus loads at 0 kW for want of a
 forecast of them (the engine was given that forecast, so it names nothing). A client's mistake (an input the plant does not have, a meter name it does
 not meter, a negative PV forecast, a time that is not UTC) raises `ValueError` instead

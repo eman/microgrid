@@ -1,7 +1,7 @@
 # Build a dataset
 
-A dataset ([`dataset/1`](../reference/dataset.md)) is how you hand the `microgrid`
-command your own data. Here four CSV files become one. They stand for whatever you have:
+A dataset ([`dataset/1`](../reference/dataset.md)) is how a plant's data reaches the
+`microgrid` command. Here four CSV files become one. They stand for whatever you have:
 exports from a monitoring portal, a recorder's history, a tariff's published rates.
 
 ## What you need
@@ -142,8 +142,7 @@ Three things to notice:
 
 ## 3. Add the plant
 
-Put the plant's file in the dataset as `plant.toml` ([Describe your
-plant](describe-plant.md)). This one has AC-coupled PV and a 10 kWh battery on its own
+Put the plant's file in the dataset as `plant.toml` ([Describe a plant](describe-plant.md)). This one has AC-coupled PV and a 10 kWh battery on its own
 inverter:
 
 ```toml
@@ -222,17 +221,17 @@ to its end.
   plant model describes, write a constant `true`, as above. If it switches modes, record
   the mode and map each to true or false ([what counts](../concepts/inputs.md#dispatch-as-modelled)).
 - **The house load** (`house`). Many inverters report home consumption; record it. If
-  yours does not, compute it from the meters, reading by reading, as below (it then
+  the inverter does not, compute it from the meters, reading by reading, as below (it then
   includes the inverters' own draw). `live`, `check-plant` and `fit-battery` read it.
 - **A heartbeat** (`heartbeat`), optional: it tells a quiet meter from a dead
   connection ([Heartbeat](../concepts/inputs.md#heartbeat)). Without one, each series is
-  trusted as far as its `known_until`, a gap in it a `null` sample. If your recorder's
+  trusted as far as its `known_until`, a gap in it a `null` sample. If the recorder's
   cadence is not a few seconds, state how long a silence it can have
   ([`limits`](../reference/dataset.md#limits)).
 - **The recorded prices** (`import_price`, `export_price`), optional: the prices in
   force over time, for `replay`, `ledger` and `check-plant`, read as numbers per kWh in
   the prices' currency, each slot at the mean of the price in force over it. Without
-  them the commands take the prices your `prices` forecasts put in force, as received:
+  them the commands take the prices the `prices` forecasts put in force, as received:
   give them only where what was in force differs from what was forecast.
 
 ```python

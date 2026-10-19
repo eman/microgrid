@@ -74,7 +74,7 @@ between forms is the larger uncertainty.
    discharging 1 kW DC delivers 86.6% of it, draws included
 ```
 
-Copy the figures into your `plant/2` and run [check-plant](check-plant.md) to confirm
+Copy the figures into the plant's `plant/2` and run [check-plant](check-plant.md) to confirm
 the model's SOC tracks the meters better than before.
 
 The fit assumes everything the battery stores or gives passes one converter that

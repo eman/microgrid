@@ -2,8 +2,7 @@
 
 Apart from the model's setup, everything a client knows arrives as a time series: a
 meter's power, the battery's SOC, a price sensor, each forecast as it was issued. This
-module holds the types and the operations on them, so that no client writes its own
-holding, staleness or alignment.
+module holds the types and the operations on them: holding, staleness and alignment.
 
 **A value holds until the next sample.** That is how Home Assistant records state,
 and how most recorders store it: a value that does not change sends nothing. So the
@@ -37,10 +36,7 @@ The operations:
 The engine's slot grid: the default slot (:data:`SLOT`, 10 minutes;
 ``EngineConfig.slot``, ``engine/2``'s ``slot_minutes``), :func:`slot_floor`,
 :func:`slot_starts`, a horizon's slots (:func:`horizon_slots`) and the UTC check every
-time passes (:func:`require_utc`). Every operation takes the slot as an argument: none
-assumes 10 minutes, or hourly prices.
-
-Pure: no I/O.
+time passes (:func:`require_utc`). Every operation takes the slot as an argument.
 """
 
 from __future__ import annotations

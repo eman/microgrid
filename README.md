@@ -47,8 +47,8 @@ uv run microgrid config check --data examples/dataset   # its plant/2 and engine
 uv run microgrid schema                                 # the outputs' schema
 ```
 
-With a `sources/1` file naming a provider per input (any of several, none assumed; the
-`sources` extra, `microgrid[sources]`), it reads live inputs instead of a dataset:
+With a `sources/1` file naming a provider per input (the `sources`
+extra, `microgrid[sources]`), it reads live inputs instead of a dataset:
 
 ```sh
 uv run microgrid sources --sources sources.toml   # what each input is read from, or why not

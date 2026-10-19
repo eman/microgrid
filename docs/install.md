@@ -2,7 +2,7 @@
 
 **Requirements:** Python 3.14 or later. The library has no other runtime dependencies.
 
-## Into your own project
+## Into a project
 
 With [uv](https://docs.astral.sh/uv/):
 
@@ -16,7 +16,7 @@ With pip:
 pip install microgrid
 ```
 
-Or list it in your `pyproject.toml`:
+Or list it in the project's `pyproject.toml`:
 
 ```toml
 [project]
@@ -32,7 +32,7 @@ This installs one distribution, `microgrid`, with three packages and one command
 | | What |
 |---|---|
 | `microgrid.plant` | the plant model |
-| `microgrid.engine` | the prices: import it to value your plant from Python |
+| `microgrid.engine` | the prices: import it to value a plant from Python |
 | `microgrid.cli` | the command's code, and the `dataset/1` reader and writer |
 | `microgrid` | the command: the library run on a dataset of files |
 
@@ -65,4 +65,4 @@ uv run microgrid value --data examples/dataset --at 2026-10-22T13:00
 `uv sync` installs the library, the command, the `sources` extra's packages and the
 development tools into `.venv`.
 
-Next: [Run your first valuation](how-to/first-valuation.md).
+Next: [Run a first valuation](how-to/first-valuation.md).

@@ -15,7 +15,7 @@ What the library holds itself to. The code and the other pages cite them by numb
   ([What a stored kWh is worth](stored-value.md), [The make-up rule](make-up-rule.md)).
 - **R-4: A value now.** Between valuations, the current slot's values follow the meters
   ([The live value](live-value.md)).
-- **R-5: Marginal, not average.** Values are for one more kWh. The supply stack says how
+- **R-5: Marginal.** Values are for one more kWh. The supply stack says how
   large a load can be before the price it pays changes
   ([The marginal price](marginal-price.md)).
 - **R-6: A pessimistic case.** Beside the expected case, values for a dull day (the PV

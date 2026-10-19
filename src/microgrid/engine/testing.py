@@ -6,8 +6,6 @@ promises. It needs no test framework; call it from any.
 
 It also runs the stored cost over the model (``Storage.stored_per_kwh``), the price a
 client's own model gets by default.
-
-Pure: no I/O.
 """
 
 from __future__ import annotations
