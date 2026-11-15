@@ -95,8 +95,8 @@ jobs:
         with:
           name: integration
           path: integration/
-      # A pre-release's notes are what is unreleased; the Marketplace offers it only
-      # where its Pre-release switch is on.
+      # A pre-release's notes are what is unreleased. The Marketplace installs the newest
+      # full release, and offers a newer pre-release where its Pre-release switch is on.
       - name: The release, its notes the changelog's section
         env:
           GH_TOKEN: ${{ github.token }}
