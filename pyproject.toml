@@ -56,8 +56,9 @@ dev = [
     # The sources extra, so the gate covers the readers.
     "microgrid[sources]",
     # The Home Assistant integration's tests (custom_components/microgrid).
-    # Home Assistant 2026.10 needs Python 3.14.2.
-    "pytest-homeassistant-custom-component>=0.13.373; python_full_version >= '3.14.2'",
+    # Home Assistant's own harness, released with each Home Assistant version (it pins
+    # that version); Home Assistant 2026.11 needs Python 3.14.2.
+    "pytest-homeassistant>=2026.11.1; python_full_version >= '3.14.2'",
 ]
 
 [project.scripts]
@@ -117,14 +118,15 @@ explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 # Home Assistant's test harness ships no type information.
-module = ["pytest_homeassistant_custom_component.*"]
+module = ["pytest_homeassistant.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # The repository (custom_components) and the tests' shared modules.
 pythonpath = [".", "tests"]
-addopts = "-q --strict-markers"
+# respx's plugin imports httpx before Home Assistant aliases it to httpx2.
+addopts = "-q --strict-markers -p no:respx"
 asyncio_mode = "auto"
 markers = [
     "live: needs the site's HA, EMQX or InfluxDB; never run by the local gate",

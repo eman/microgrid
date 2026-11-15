@@ -8,13 +8,15 @@ command, configured from Home Assistant's interface.
 
 ## Install
 
-With HACS: add `https://github.com/eman/microgrid` as a custom repository (category
-*Integration*), install *Microgrid*, and restart Home Assistant. Each release attaches
-the integration as `microgrid.zip`; its manifest installs the same version of the
-library from PyPI. It needs Home Assistant 2026.10 or later, and the recorder for the
-battery's lots.
+From Home Assistant's Marketplace: in *Settings → Marketplace*, *Add from link*
+`eman/microgrid` (it asks to connect a GitHub account the first time), open
+*Microgrid* and install it. Each release attaches the integration as `microgrid.zip`;
+its manifest installs the same version of the library from PyPI. It needs Home
+Assistant 2026.11 or later, and the recorder for the battery's lots.
 
-Then *Settings → Devices & services → Add integration → Microgrid*.
+Then set it up: the Marketplace opens the setup, or asks for a restart first
+(*Settings → System → Repairs*); later, *Settings → Devices & services → Add
+integration → Microgrid*.
 
 ## Configure
 

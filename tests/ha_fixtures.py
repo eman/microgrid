@@ -17,7 +17,7 @@ from custom_components.microgrid.const import (
 from homeassistant.components.energy.data import EnergyPreferencesUpdate, async_get_manager
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from microgrid.cli.offline import read_plant
 

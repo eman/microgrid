@@ -20,7 +20,7 @@ pip install microgrid                # or: uv add microgrid
 pip install "microgrid[sources]"     # with the readers of live sources (Home Assistant)
 ```
 
-In Home Assistant, the integration (`custom_components/microgrid`, through HACS) installs
+In Home Assistant, the integration (`custom_components/microgrid`, through its Marketplace) installs
 it and runs it on Home Assistant's own entities
 ([Run it in Home Assistant](https://github.com/eman/microgrid/blob/main/docs/how-to/home-assistant.md)).
 
