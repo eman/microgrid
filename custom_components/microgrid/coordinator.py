@@ -279,6 +279,11 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
     # -- the battery's lots --------------------------------------------------------------
 
     def _price_entities(self) -> tuple[str | None, str | None]:
+        """The recorded prices the configuration names (``import_price``,
+        ``export_price``), else the integration's own *Import price* and *Export price*."""
+        measured = self.setup.measured
+        if measured is not None and measured.import_price and measured.export_price:
+            return measured.import_price, measured.export_price
         registry = er.async_get(self.hass)
         found = [
             registry.async_get_entity_id("sensor", DOMAIN, f"{self.config_entry.entry_id}_{key}")

@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 from custom_components.microgrid.const import (
+    CONF_MEASURED,
     CONF_PLANT,
     DOMAIN,
     FAILING_FOR_ISSUE,
@@ -202,3 +203,27 @@ async def test_a_plant_the_library_refuses_does_not_load(
     found.add_to_hass(hass)
     assert not await hass.config_entries.async_setup(found.entry_id)
     assert found.state is ConfigEntryState.SETUP_ERROR
+
+
+async def test_the_lots_read_the_recorded_prices_the_configuration_names(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """Prices a sources file names have the recorder's history from the start; the
+    integration's own sensors are read only where it names none."""
+    set_sources(hass)
+    named = options()
+    named[CONF_MEASURED] = {
+        **named[CONF_MEASURED],
+        "import_price": "sensor.buy",
+        "export_price": "sensor.sell",
+    }
+    found = MockConfigEntry(domain=DOMAIN, title="Home", data=entry().data, options=named)
+    await setup(hass, found)
+    assert found.runtime_data._price_entities() == ("sensor.buy", "sensor.sell")
+
+    own = entry()
+    await setup(hass, own)
+    assert own.runtime_data._price_entities() == (
+        entity_id(hass, own, "import_price"),
+        entity_id(hass, own, "export_price"),
+    )

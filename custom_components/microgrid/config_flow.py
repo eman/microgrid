@@ -500,9 +500,17 @@ def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
     return vol.Schema(schema)
 
 
-def measured_from_form(plant: Plant, form: Mapping[str, Any]) -> dict[str, Any]:
-    """The measured form as its ``sources/1`` section."""
+#: The measured section's keys a file sets and the form does not show: kept as they are.
+_MEASURED_KEPT = ("import_price", "export_price", "inverter")
+
+
+def measured_from_form(
+    plant: Plant, form: Mapping[str, Any], kept: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    """The measured form as its ``sources/1`` section, with what ``kept`` (the section
+    in force) sets that the form does not show."""
     section: dict[str, Any] = {CONF_FROM: "home_assistant"}
+    section.update({key: kept[key] for key in _MEASURED_KEPT if kept and kept.get(key)})
     meters = {name: form[f"meter_{name}"] for name in plant.meters if form.get(f"meter_{name}")}
     if meters:
         section["meters"] = meters
@@ -873,7 +881,7 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            section = measured_from_form(plant, user_input)
+            section = measured_from_form(plant, user_input, self.options.get(CONF_MEASURED))
             try:
                 check_measured(plant, section)
             except SetupError as err:
@@ -1062,7 +1070,7 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            section = measured_from_form(plant, user_input)
+            section = measured_from_form(plant, user_input, self.options.get(CONF_MEASURED))
             try:
                 check_measured(plant, section)
             except SetupError as err:

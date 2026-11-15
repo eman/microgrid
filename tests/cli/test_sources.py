@@ -77,6 +77,33 @@ unit = "W"
     assert pv.period == timedelta(minutes=30) and pv.keys == {"value": "watts"}
 
 
+@pytest.mark.parametrize(
+    ("section", "value_key"),
+    [
+        ('entity = "sensor.p_load_forecast_48h"', "p_load_forecast_48h"),
+        ('entity = "sensor.p_load_forecast_48h"\nvalue_key = "kw"', "kw"),
+    ],
+)
+def test_emhass_keys_a_renamed_sensors_rows_by_its_name(
+    tmp_path: Path, section: str, value_key: str
+) -> None:
+    """EMHASS keys each row's value by its sensor's object id, so a renamed sensor's rows
+    are read under its own name unless ``value_key`` says otherwise."""
+    path = _write(
+        tmp_path,
+        f"""schema = "sources/1"
+plant = "plant.toml"
+[home_assistant]
+url = "http://ha.local:8123"
+[load_forecast]
+from = "emhass"
+{section}
+""",
+    )
+    load = read_sources(path).load_forecast
+    assert isinstance(load, Emhass) and load.value_key == value_key
+
+
 def test_a_bad_sources_file_names_every_problem(tmp_path: Path) -> None:
     path = _write(
         tmp_path,

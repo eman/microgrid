@@ -280,7 +280,7 @@ over its optimisation step from `date`.
 |---|---|---|
 | `entity` | `"sensor.p_load_forecast"` | the entity |
 | `attribute` | `"forecasts"` | the attribute holding the rows |
-| `value_key` | `"p_load_forecast"` | each row's value |
+| `value_key` | the entity's name (`p_load_forecast`; `p_load_forecast_48h` for `sensor.p_load_forecast_48h`), as EMHASS keys its rows | each row's value |
 | `period_minutes` | `30` | EMHASS's optimisation step: each row's length |
 
 The unit is the entity's `unit_of_measurement`. The issue time is the state's

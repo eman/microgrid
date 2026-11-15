@@ -554,10 +554,12 @@ class _Reader:
         if kind == "emhass":
             self.unknown(data, {"from", "entity", "attribute", "value_key", "period_minutes"}, name)
             base = Emhass()
+            entity = self.text(data, "entity", name) or base.entity
             return Emhass(
-                self.text(data, "entity", name) or base.entity,
+                entity,
                 self.text(data, "attribute", name) or base.attribute,
-                self.text(data, "value_key", name) or base.value_key,
+                # EMHASS keys each row's value by its sensor's object id.
+                self.text(data, "value_key", name) or entity.partition(".")[2],
                 self.minutes(data, "period_minutes", name) or base.period,
             )
         if kind == "predbat":

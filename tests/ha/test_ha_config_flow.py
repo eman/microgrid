@@ -4,7 +4,7 @@ source checked by the library and read once."""
 from typing import Any
 
 import pytest
-from custom_components.microgrid.config_flow import section_from_form
+from custom_components.microgrid.config_flow import measured_from_form, section_from_form
 from custom_components.microgrid.const import (
     CONF_ENGINE,
     CONF_LOAD_FORECAST,
@@ -14,6 +14,7 @@ from custom_components.microgrid.const import (
     CONF_PV_FORECAST,
     DOMAIN,
 )
+from custom_components.microgrid.setup import read_plant
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
@@ -239,3 +240,29 @@ def test_a_form_becomes_its_section() -> None:
         "keys": {"import": "cost"},
         "export": 0.04,
     }
+
+
+def test_the_measured_form_keeps_what_a_file_set_and_it_does_not_show() -> None:
+    """A file's recorded prices and inverter survive an edit of the measured form."""
+    plant = read_plant(plant_data(), "Europe/Berlin")
+    form = {
+        "meter_pv": "sensor.pv_power",
+        "meter_grid": "sensor.grid_power",
+        "meter_battery": "sensor.battery_power",
+        "soc": "sensor.battery_soc",
+        "house": "sensor.house_power",
+        "dispatch_as_modelled": True,
+    }
+    kept = {
+        "from": "home_assistant",
+        "soc": "sensor.old_soc",
+        "import_price": "sensor.buy",
+        "export_price": "sensor.sell",
+        "inverter": "sensor.inverter_power",
+    }
+    section = measured_from_form(plant, form, kept)
+    assert section["soc"] == "sensor.battery_soc"  # the form's
+    assert section["import_price"] == "sensor.buy"
+    assert section["export_price"] == "sensor.sell"
+    assert section["inverter"] == "sensor.inverter_power"
+    assert "import_price" not in measured_from_form(plant, form)

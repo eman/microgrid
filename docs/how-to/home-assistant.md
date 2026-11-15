@@ -143,10 +143,11 @@ scheduler](scheduler.md) says which output answers which question.
   valuation.
 - **The battery's lots** are the library's ledger, run in over the recorder's last two
   days when the integration starts (in the recorder's executor), then stepped each slot, over the plant's meters,
-  the SOC, the house load and the integration's own *Import price* and *Export price*
-  as recorded. On a new install those have no history yet: the valuation names
-  `battery_lots` and prices what the battery holds as bought at the import until the
-  recorder has them.
+  the SOC, the house load and the prices in force as recorded: the entities an imported
+  `sources/1` file names for them (`import_price`, `export_price` in `[measured]`),
+  else the integration's own *Import price* and *Export price*. On a new install those
+  have no history yet: the valuation names `battery_lots` and prices what the battery
+  holds as bought at the import until the recorder has them.
 
 A source that has failed every read for 30 minutes raises a repair issue, which clears
 when it reads again. The entry's diagnostics hold the configuration (entity ids redacted), what each
