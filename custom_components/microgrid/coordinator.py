@@ -322,7 +322,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
 
     def _prices_problem(self, history: RecorderHistory) -> str | None:
         """Why the recorded prices cannot price the lots now: an entity not loaded yet
-        (its unit unknown: tried again the next slot), or one in another currency than
+        (its unit unknown: checked again at the next refresh), or one in another currency than
         Home Assistant's, in which the integration states the prices (none is converted):
         anything but its code or one of its symbols (``€/kWh`` passes, ``¢/kWh`` not)."""
         missing = sorted(
@@ -336,7 +336,9 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         other = sorted(
             f"{entity} in {unit}"
             for entity in history.prices
+            # A unit with no "/" is no price's: the read names it.
             if (unit := history.units.get(entity))
+            and "/" in unit
             and not _same_currency(unit.rpartition("/")[0], currency)
         )
         if other:
