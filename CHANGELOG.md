@@ -4,6 +4,8 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-15
+
 ### Added
 
 - The Home Assistant integration's plant builder asks only what a battery's

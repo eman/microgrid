@@ -118,16 +118,5 @@ release's, with `.dev0`. To release `X.Y.Z`:
 3. Then `pyproject.toml`'s version, and the manifest's, become the next one's `.dev0`
    (`uv version X.Y.(Z+1).dev0`).
 
-A pre-release `X.Y.ZrcN` (or `aN`, `bN`) tries a release before it is made: step 1
-changes the versions alone (`uv version X.Y.ZrcN`; the changelog keeps `[Unreleased]`),
-and the tag `vX.Y.ZrcN` publishes it to PyPI and as a GitHub pre-release, its notes
-`[Unreleased]`, the documentation site left as it is. The Marketplace installs the
-newest full release and offers a newer pre-release where the repository's Pre-release
-switch is on; it validates the repository at that full release, so while none holds the
-integration (0.1.3 and before) the pre-release's GitHub release is made a full one
-(`gh release edit vX.Y.ZrcN --prerelease=false --latest`; PyPI still holds it as a
-pre-release). Then the versions become the next pre-release's `.dev0`
-(`uv version X.Y.Zrc(N+1).dev0`), until `X.Y.Z` itself is released.
-
 A version on PyPI is never replaced: a mistake is fixed by the next release.
 
