@@ -230,18 +230,28 @@ async def test_the_lots_read_the_recorded_prices_the_configuration_names(
     )
 
 
-async def test_recorded_prices_in_another_currency_are_named(
+async def test_recorded_prices_not_loaded_or_in_another_currency_are_named(
     hass: HomeAssistant, frozen: FrozenDateTimeFactory
 ) -> None:
-    """A recorded price in a currency other than Home Assistant's is never converted: the
-    lots name it, and a price in Home Assistant's currency or with no unit passes."""
+    """A recorded price not loaded yet waits (its unit unknown); one in a currency other
+    than Home Assistant's is never converted: the lots name it. Home Assistant's
+    currency, its symbol, or no unit pass."""
     await hass.config.async_update(currency="EUR")
     set_sources(hass)
     found = entry()
     await setup(hass, found)
+    coordinator = found.runtime_data
     history = RecorderHistory(hass, {}, ("sensor.buy", "sensor.sell"))
     history.units = {"sensor.buy": "EUR/MWh", "sensor.sell": None}
-    assert found.runtime_data._currency_problem(history) is None
-    history.units["sensor.sell"] = "¢/kWh"
-    problem = found.runtime_data._currency_problem(history)
-    assert problem is not None and "sensor.sell in ¢/kWh" in problem and "EUR" in problem
+    problem = coordinator._prices_problem(history)
+    assert problem is not None and "not available yet (sensor.buy, sensor.sell)" in problem
+    hass.states.async_set("sensor.buy", "85")
+    hass.states.async_set("sensor.sell", "0.04")
+    assert coordinator._prices_problem(history) is None
+    for unit in ("€/kWh", "", "eur/kWh"):
+        history.units["sensor.sell"] = unit
+        assert coordinator._prices_problem(history) is None, unit
+    for unit in ("¢/kWh", "c/kWh", "USD/kWh"):
+        history.units["sensor.sell"] = unit
+        problem = coordinator._prices_problem(history)
+        assert problem is not None and f"sensor.sell in {unit}" in problem, unit

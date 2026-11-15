@@ -25,7 +25,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import partial
-from typing import Any
+from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
@@ -99,6 +99,18 @@ class Snapshot:
     #: Each input read, and its source; each not read, and why.
     sources: dict[str, str] = field(default_factory=dict)
     problems: dict[str, str] = field(default_factory=dict)
+
+
+#: A currency's subunits as a price's unit names them (cents, pence): never converted.
+_SUBUNITS: Final = frozenset({"c", "ct", "¢", "p"})
+
+
+def _other_currency(money: str, currency: str) -> bool:
+    """Whether a price's currency (``money``, its unit before the ``/``) is not
+    ``currency`` (an ISO code): a subunit, or another code; a symbol is taken as it."""
+    if money in _SUBUNITS:
+        return True
+    return len(money) == 3 and money.isascii() and money.isalpha() and money.upper() != currency
 
 
 class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
@@ -291,15 +303,24 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         ]
         return found[0], found[1]
 
-    def _currency_problem(self, history: RecorderHistory) -> str | None:
-        """Why the recorded prices cannot price the lots: a currency other than Home
-        Assistant's, in which the integration states the prices (none is converted)."""
+    def _prices_problem(self, history: RecorderHistory) -> str | None:
+        """Why the recorded prices cannot price the lots now: an entity not loaded yet
+        (its unit unknown: tried again the next slot), or one in another currency than
+        Home Assistant's, in which the integration states the prices (none is converted):
+        a subunit (``¢/kWh``) or another currency's code. A symbol (``€/kWh``) passes."""
+        missing = sorted(
+            entity
+            for entity in history.prices
+            if (state := self.hass.states.get(entity)) is None or state.state == "unavailable"
+        )
+        if missing:
+            return f"the recorded prices are not available yet ({', '.join(missing)})"
         currency = self.hass.config.currency
         other = sorted(
             f"{entity} in {unit}"
             for entity in history.prices
-            if (unit := history.units.get(entity)) is not None
-            and unit.rpartition("/")[0] not in ("", currency)
+            if (unit := history.units.get(entity))
+            and _other_currency(unit.rpartition("/")[0], currency)
         )
         if other:
             return f"recorded prices not in {currency} ({', '.join(other)}): none is converted"
@@ -347,7 +368,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             for entity in (*measured.meters.values(), measured.house, *history.prices)
             if entity is not None
         }
-        if (problem := self._currency_problem(history)) is not None:
+        if (problem := self._prices_problem(history)) is not None:
             self._lots_problem = problem
             return
         try:

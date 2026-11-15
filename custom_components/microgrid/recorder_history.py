@@ -118,7 +118,7 @@ class RecorderHistory:
         converted from its entity's unit (a currency is never converted)."""
         found = self._numbers(entity_id, start, end)
         unit = self.units.get(entity_id)
-        if entity_id not in self.prices or unit is None:
+        if entity_id not in self.prices or not unit:
             return found
         try:
             return Series(

@@ -154,8 +154,11 @@ async def test_a_recorded_price_is_read_per_kwh(
     hass.states.async_set("sensor.odd", "3", {"unit_of_measurement": "EUR/MWh"})
     hass.states.async_set("sensor.bad", "3", {"unit_of_measurement": "kW"})
     await async_wait_recording_done(hass)
+    hass.states.async_set("sensor.plain", "0.3")
+    await async_wait_recording_done(hass)
     units = {"sensor.buy": "EUR/MWh", "sensor.odd": "EUR/MWh", "sensor.bad": "kW"}
-    history = RecorderHistory(hass, units, ("sensor.buy", "sensor.bad"))
+    units["sensor.plain"] = ""  # no unit: per kWh already
+    history = RecorderHistory(hass, units, ("sensor.buy", "sensor.bad", "sensor.plain"))
     start, end = T0 + MINUTE, T0 + 20 * MINUTE
 
     def read(entity: str) -> Callable[[], Coroutine[Any, Any, Series[float]]]:
@@ -165,5 +168,7 @@ async def test_a_recorded_price_is_read_per_kwh(
     assert [s.value for s in buy.samples] == [0.085]
     odd = await run_in_recorder(hass, read("sensor.odd"))
     assert [s.value for s in odd.samples] == [3.0]
+    plain = await run_in_recorder(hass, read("sensor.plain"))
+    assert [s.value for s in plain.samples] == [0.3]
     with pytest.raises(LotsError, match=r"sensor\.bad"):
         await run_in_recorder(hass, read("sensor.bad"))
