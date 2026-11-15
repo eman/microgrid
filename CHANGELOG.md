@@ -21,8 +21,8 @@ Each user-visible change, under the release it ships in.
   plant file and a `sources/1` file can be imported together. A plant is set up once.
 - `microgrid.cli.signs`: each meter's sign, told from what the meters recorded (PV and
   DC-bus loads positive, the battery against its SOC, the grid by the balance).
-- A Home Assistant integration (`custom_components/microgrid`, installed with HACS from
-  a release's `microgrid.zip`): the plant (`plant/2`, pasted or built step by step),
+- A Home Assistant integration (`custom_components/microgrid`, installed from Home Assistant's
+  Marketplace, from a release's `microgrid.zip`; Home Assistant 2026.11 or later): the plant (`plant/2`, pasted or built step by step),
   its measured entities and its sources configured in Home Assistant, each checked by
   the library and each source read once before it is kept. It publishes the valuation
   (its slots in an unrecorded attribute), the live value (marginal cost, surplus,

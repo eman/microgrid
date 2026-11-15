@@ -80,7 +80,7 @@ never cite them in a tracked file.
 
 ## The Home Assistant integration
 
-`custom_components/microgrid` beside `src/`, as one repository holds both (HACS installs
+`custom_components/microgrid` beside `src/`, as one repository holds both (Home Assistant's Marketplace installs
 it from a release's `microgrid.zip`). Home Assistant's conventions hold in that
 directory; its tests (`tests/ha`) run in the gate on Home Assistant's own test harness.
 Its manifest pins this version of the library (`microgrid[sources]==X.Y.Z`), so the
@@ -112,7 +112,7 @@ release's, with `.dev0`. To release `X.Y.Z`:
 2. Tag that commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the
    tag is the version, runs the gate, builds, publishes to PyPI by trusted publishing
    (the `pypi` environment), makes the GitHub release, its notes the changelog's
-   section, with the integration's `microgrid.zip` for HACS, and publishes the
+   section, with the integration's `microgrid.zip` for Home Assistant's Marketplace, and publishes the
    documentation site to GitHub Pages (the `github-pages` environment): one site, the
    latest release's.
 3. Then `pyproject.toml`'s version, and the manifest's, become the next one's `.dev0`

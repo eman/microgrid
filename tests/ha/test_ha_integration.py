@@ -18,11 +18,9 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from ha_fixtures import NOW, entity_id, entry, options, plant_data, rows, set_sources, setup
-
-pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 @pytest.fixture

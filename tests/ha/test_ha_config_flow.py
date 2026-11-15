@@ -18,7 +18,7 @@ from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from ha_fixtures import NOW, REPO, entry, options, plant_data, set_sources
 
@@ -33,8 +33,6 @@ MEASURED = {
     "dispatch_as_modelled": True,
 }
 PRICES = {"entity": "sensor.rates", "attribute": "rates", "import_key": "buy", "export_key": "sell"}
-
-pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 @pytest.fixture(autouse=True)

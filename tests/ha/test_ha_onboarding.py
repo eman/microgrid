@@ -29,15 +29,13 @@ from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pytest_homeassistant_custom_component.components.recorder.common import (
+from pytest_homeassistant.common import MockConfigEntry
+from pytest_homeassistant.components.recorder.common import (
     async_wait_recording_done,
 )
 
 from ha_fixtures import HOUR, NOW, REPO, energy_prefs, plant_data, set_sources
 from microgrid.cli.seen import BatterySeen
-
-LOADS = pytest.mark.usefixtures("enable_custom_integrations")
 
 PLANT_TOML = (REPO / "examples" / "dataset" / "plant.toml").read_text(encoding="utf-8")
 MEASURED_FORM = {
@@ -185,7 +183,6 @@ async def _to_load_forecast(hass: HomeAssistant) -> str:
     return str(flow)
 
 
-@LOADS
 async def test_a_source_found_is_proposed_and_read_at_once(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -200,7 +197,6 @@ async def test_a_source_found_is_proposed_and_read_at_once(
     assert result["options"][CONF_LOAD_FORECAST]["value_key"] == "p_load_forecast_48h"
 
 
-@LOADS
 async def test_a_source_found_that_needs_an_export_price_asks_for_it(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -223,7 +219,6 @@ async def test_a_source_found_that_needs_an_export_price_asks_for_it(
     assert area.description == {"suggested_value": "SE3"}
 
 
-@LOADS
 async def test_the_energy_dashboard_proposes_what_is_measured(hass: HomeAssistant) -> None:
     set_sources(hass)
     await energy_prefs(hass, capacity=12.5)
@@ -317,7 +312,6 @@ async def test_signs_are_told_from_the_recorders_history(
     assert await read_signs(hass, plant, section) is None
 
 
-@LOADS
 async def test_signs_the_records_contradict_are_confirmed_then_applied(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -354,7 +348,6 @@ async def test_signs_the_records_contradict_are_confirmed_then_applied(
     assert meters["grid"]["sign"] == -1.0
 
 
-@LOADS
 async def test_a_plant_and_a_sources_file_make_an_entry_once(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -411,7 +404,6 @@ async def test_a_plant_and_a_sources_file_make_an_entry_once(
     assert await hass.config_entries.async_unload(entry.entry_id)
 
 
-@LOADS
 async def test_a_sources_file_without_prices_is_refused(
     hass: HomeAssistant, freezer: FrozenDateTimeFactory
 ) -> None:
@@ -468,7 +460,6 @@ async def test_the_battery_is_measured_from_the_recorder(
     assert seen.capacity_kwh == 12.5
 
 
-@LOADS
 async def test_the_builder_asks_only_what_a_battery_states(hass: HomeAssistant) -> None:
     """Its capacity and limits (proposed where the Energy dashboard says), its reserve
     and the inverter's rating: never its efficiencies or draws."""
@@ -512,7 +503,6 @@ def test_a_dc_bus_batterys_limits_are_proposed_ac_side() -> None:
     }
 
 
-@LOADS
 async def test_a_dc_bus_shared_with_pv_asks_the_batterys_dc_limits(hass: HomeAssistant) -> None:
     """DC-coupled PV on the hybrid's bus with the battery: the plant needs the
     battery's own DC limits and the hybrid's AC rating, and the builder asks them."""
