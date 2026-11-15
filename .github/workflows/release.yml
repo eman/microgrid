@@ -1,6 +1,9 @@
 # A release: a tag vX.Y.Z on main publishes that version to PyPI, makes its GitHub
-# release and publishes its documentation site (AGENTS.md, *Releases*). The tag must match pyproject.toml's version, and the
-# gate must pass on the tagged commit, before anything is published.
+# release and publishes its documentation site (AGENTS.md, *Releases*). A pre-release
+# (vX.Y.ZrcN, aN, bN) is published to PyPI and as a GitHub pre-release, its notes the
+# changelog's [Unreleased], and leaves the site alone. The tag must match
+# pyproject.toml's version, and the gate must pass on the tagged commit, before anything
+# is published.
 #
 # PyPI takes the upload by trusted publishing (OpenID Connect): no token is stored here.
 # PyPI's project names this repository, this workflow and the `pypi` environment.
@@ -17,16 +20,27 @@ jobs:
   build:
     if: github.repository == 'eman/microgrid'
     runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       # Pinned by commit: a tag can be moved.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
       - run: uv python install 3.14
       - name: The tag is the version
+        id: version
         run: |
           version="$(uv version --short)"
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "tag $GITHUB_REF_NAME, but pyproject.toml says $version" >&2
+            exit 1
+          fi
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$version is neither a release nor a pre-release" >&2
             exit 1
           fi
       # The gate holds the integration's manifest to the version (tests/test_manifest.py).
@@ -67,7 +81,7 @@ jobs:
       - run: uv publish --trusted-publishing always dist/*
 
   github-release:
-    needs: publish
+    needs: [build, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -81,24 +95,33 @@ jobs:
         with:
           name: integration
           path: integration/
+      # A pre-release's notes are what is unreleased. The Marketplace installs the newest
+      # full release, and offers a newer pre-release where its Pre-release switch is on.
       - name: The release, its notes the changelog's section
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '
+          section="${GITHUB_REF_NAME#v}"
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then
+            section="Unreleased"
+            flags=(--prerelease)
+          fi
+          awk -v v="$section" '
             $0 ~ "^## \\[" v "\\]" { on = 1; next }
             on && /^## \[/ { exit }
             on { print }
           ' CHANGELOG.md > notes.md
           gh release create "$GITHUB_REF_NAME" dist/* integration/microgrid.zip \
-            --title "$GITHUB_REF_NAME" --notes-file notes.md
+            --title "$GITHUB_REF_NAME" --notes-file notes.md "${flags[@]}"
 
   # The documentation site (GitHub Pages, https://eman.github.io/microgrid/): one site,
-  # the latest release's, published once PyPI has the version it describes. The
-  # github-pages environment takes tags v* alone.
+  # the latest release's, published once PyPI has the version it describes; not a
+  # pre-release's. The github-pages environment takes tags v* alone.
   docs:
-    needs: publish
+    needs: [build, publish]
+    if: needs.build.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
