@@ -4,6 +4,8 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-11-15
+
 ### Fixed
 
 - The Home Assistant integration's battery lots read the recorded prices an imported
