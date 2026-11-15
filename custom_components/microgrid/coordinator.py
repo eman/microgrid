@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import partial
@@ -101,16 +102,32 @@ class Snapshot:
     problems: dict[str, str] = field(default_factory=dict)
 
 
-#: A currency's subunits as a price's unit names them (cents, pence): never converted.
-_SUBUNITS: Final = frozenset({"c", "ct", "¢", "p"})
+#: Each currency's symbols, as a price's unit may name it in place of its code.
+_SYMBOLS: Final[Mapping[str, frozenset[str]]] = {
+    "EUR": frozenset({"€"}),
+    "USD": frozenset({"$", "US$"}),
+    "AUD": frozenset({"$", "A$", "AU$"}),
+    "CAD": frozenset({"$", "C$", "CA$"}),
+    "NZD": frozenset({"$", "NZ$"}),
+    "GBP": frozenset({"£"}),
+    "JPY": frozenset({"¥", "円"}),
+    "CNY": frozenset({"¥", "元"}),
+    "INR": frozenset({"₹"}),
+    "KRW": frozenset({"₩"}),
+    "SEK": frozenset({"kr"}),
+    "NOK": frozenset({"kr"}),
+    "DKK": frozenset({"kr"}),
+    "PLN": frozenset({"zł"}),
+    "BRL": frozenset({"R$"}),
+}
 
 
-def _other_currency(money: str, currency: str) -> bool:
-    """Whether a price's currency (``money``, its unit before the ``/``) is not
-    ``currency`` (an ISO code): a subunit, or another code; a symbol is taken as it."""
-    if money in _SUBUNITS:
-        return True
-    return len(money) == 3 and money.isascii() and money.isalpha() and money.upper() != currency
+def _same_currency(money: str, currency: str) -> bool:
+    """Whether a price's currency (``money``, its unit before the ``/``) is ``currency``
+    (an ISO code): its code, or one of its symbols. Anything else (a subunit such as
+    cents or öre, another code, a symbol of another currency) is not, as none is
+    converted."""
+    return money.casefold() == currency.casefold() or money in _SYMBOLS.get(currency, ())
 
 
 class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
@@ -307,7 +324,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         """Why the recorded prices cannot price the lots now: an entity not loaded yet
         (its unit unknown: tried again the next slot), or one in another currency than
         Home Assistant's, in which the integration states the prices (none is converted):
-        a subunit (``¢/kWh``) or another currency's code. A symbol (``€/kWh``) passes."""
+        anything but its code or one of its symbols (``€/kWh`` passes, ``¢/kWh`` not)."""
         missing = sorted(
             entity
             for entity in history.prices
@@ -320,7 +337,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             f"{entity} in {unit}"
             for entity in history.prices
             if (unit := history.units.get(entity))
-            and _other_currency(unit.rpartition("/")[0], currency)
+            and not _same_currency(unit.rpartition("/")[0], currency)
         )
         if other:
             return f"recorded prices not in {currency} ({', '.join(other)}): none is converted"
@@ -360,7 +377,6 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         due = tracker.due(now)
         if due == tracker.through or due == self._lots_tried:
             return  # stepped through it, or tried it: one try a slot
-        self._lots_tried = due
         # The units as their entities state them now, read here on the event loop.
         assert measured is not None  # the tracker is made from it
         history.units = {
@@ -369,8 +385,11 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             if entity is not None
         }
         if (problem := self._prices_problem(history)) is not None:
+            # Not a try: checked again at the next refresh (the integration's own price
+            # sensors are added after its first one).
             self._lots_problem = problem
             return
+        self._lots_tried = due
         try:
             await run_in_recorder(self.hass, lambda: tracker.update(now))
         except (LotsError, ValueError) as err:

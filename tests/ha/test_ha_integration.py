@@ -234,8 +234,9 @@ async def test_recorded_prices_not_loaded_or_in_another_currency_are_named(
     hass: HomeAssistant, frozen: FrozenDateTimeFactory
 ) -> None:
     """A recorded price not loaded yet waits (its unit unknown); one in a currency other
-    than Home Assistant's is never converted: the lots name it. Home Assistant's
-    currency, its symbol, or no unit pass."""
+    than Home Assistant's (a subunit, another code or another currency's symbol) is never
+    converted: the lots name it. Home Assistant's currency's code, its symbol, or no unit
+    pass."""
     await hass.config.async_update(currency="EUR")
     set_sources(hass)
     found = entry()
@@ -248,10 +249,29 @@ async def test_recorded_prices_not_loaded_or_in_another_currency_are_named(
     hass.states.async_set("sensor.buy", "85")
     hass.states.async_set("sensor.sell", "0.04")
     assert coordinator._prices_problem(history) is None
-    for unit in ("€/kWh", "", "eur/kWh"):
+    for unit in ("€/kWh", "", "eur/kWh", "EUR/MWh"):
         history.units["sensor.sell"] = unit
         assert coordinator._prices_problem(history) is None, unit
-    for unit in ("¢/kWh", "c/kWh", "USD/kWh"):
+    for unit in ("¢/kWh", "c/kWh", "cent/kWh", "Öre/kWh", "ct/kWh", "USD/kWh", "$/kWh"):
         history.units["sensor.sell"] = unit
         problem = coordinator._prices_problem(history)
         assert problem is not None and f"sensor.sell in {unit}" in problem, unit
+
+
+async def test_the_lots_wait_for_their_price_sensors_without_spending_the_slot(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """A recorded price not available yet is checked again at the next refresh, not the
+    next slot: the try of the slot is not spent on it."""
+    set_sources(hass)
+    named = options()
+    named[CONF_MEASURED] = {
+        **named[CONF_MEASURED],
+        "import_price": "sensor.buy",
+        "export_price": "sensor.sell",
+    }
+    found = MockConfigEntry(domain=DOMAIN, title="Home", data=entry().data, options=named)
+    await setup(hass, found)
+    coordinator = found.runtime_data
+    assert "not available yet" in (coordinator._lots_problem or "")
+    assert coordinator._lots_tried is None
