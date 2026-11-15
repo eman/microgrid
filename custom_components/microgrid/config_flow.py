@@ -497,12 +497,24 @@ def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
             )
         ] = selector.BooleanSelector()
     schema[optional("heartbeat", current.get("heartbeat"))] = selector.EntitySelector()
+    if plant.storage is not None:
+        schema[optional("import_price", current.get("import_price"))] = power
+        schema[optional("export_price", current.get("export_price"))] = power
     return vol.Schema(schema)
 
 
-def measured_from_form(plant: Plant, form: Mapping[str, Any]) -> dict[str, Any]:
-    """The measured form as its ``sources/1`` section."""
+#: The measured section's key a file sets and the form does not show (the inverter's AC
+#: power, read only by ``microgrid fit-battery``): kept as it is.
+_MEASURED_KEPT = ("inverter",)
+
+
+def measured_from_form(
+    plant: Plant, form: Mapping[str, Any], kept: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    """The measured form as its ``sources/1`` section, with what ``kept`` (the section
+    in force) sets that the form does not show."""
     section: dict[str, Any] = {CONF_FROM: "home_assistant"}
+    section.update({key: kept[key] for key in _MEASURED_KEPT if kept and kept.get(key)})
     meters = {name: form[f"meter_{name}"] for name in plant.meters if form.get(f"meter_{name}")}
     if meters:
         section["meters"] = meters
@@ -510,6 +522,9 @@ def measured_from_form(plant: Plant, form: Mapping[str, Any]) -> dict[str, Any]:
         if form.get(key):
             section[key] = form[key]
     if plant.storage is not None:
+        for key in ("import_price", "export_price"):
+            if form.get(key):
+                section[key] = form[key]
         if form.get("soc_unit") == _SOC_FRACTION:
             section["soc_unit"] = ""
         if form.get("dispatch"):
@@ -526,6 +541,8 @@ def check_measured(plant: Plant, section: Mapping[str, Any]) -> None:
     problems: list[str] = []
     if plant.storage is not None and not section.get("soc"):
         problems.append("soc: a plant with a battery needs its SOC")
+    if bool(section.get("import_price")) != bool(section.get("export_price")):
+        problems.append("import_price, export_price: the battery's lots read both, or neither")
     try:
         read_measured(section)
     except SetupError as err:
@@ -873,7 +890,7 @@ class MicrogridConfigFlow(_Sections, ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            section = measured_from_form(plant, user_input)
+            section = measured_from_form(plant, user_input, self.options.get(CONF_MEASURED))
             try:
                 check_measured(plant, section)
             except SetupError as err:
@@ -1062,7 +1079,7 @@ class MicrogridOptionsFlow(_Sections, OptionsFlow):
         errors: dict[str, str] = {}
         placeholders: dict[str, str] = {}
         if user_input is not None:
-            section = measured_from_form(plant, user_input)
+            section = measured_from_form(plant, user_input, self.options.get(CONF_MEASURED))
             try:
                 check_measured(plant, section)
             except SetupError as err:

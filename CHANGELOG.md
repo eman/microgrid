@@ -4,6 +4,20 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+### Fixed
+
+- The Home Assistant integration's battery lots read the recorded prices an imported
+  `sources/1` file names (`[measured]`'s `import_price` and `export_price`), which the
+  recorder already holds; before, they read only the integration's own price sensors,
+  which a new install has no history for, and priced what the battery held at the
+  import. The measured entities' form shows the recorded import and export prices
+  (both or neither), and keeps a file's inverter; a recorded price is read per kWh from
+  its entity's unit, and one in another currency than Home Assistant's is named.
+- EMHASS's load forecast (`from = "emhass"`) reads a renamed sensor's rows under its own
+  name (`value_key` defaults to the entity's object id, `p_load_forecast_48h` for
+  `sensor.p_load_forecast_48h`), as EMHASS keys them; before, it looked for
+  `p_load_forecast` and found no row.
+
 ## [0.1.4] - 2026-11-15
 
 ### Added

@@ -7,12 +7,14 @@ from typing import Any
 
 import pytest
 from custom_components.microgrid.const import (
+    CONF_MEASURED,
     CONF_PLANT,
     DOMAIN,
     FAILING_FOR_ISSUE,
     SERVICE_GET_VALUATION,
 )
 from custom_components.microgrid.diagnostics import async_get_config_entry_diagnostics
+from custom_components.microgrid.recorder_history import RecorderHistory
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
@@ -202,3 +204,74 @@ async def test_a_plant_the_library_refuses_does_not_load(
     found.add_to_hass(hass)
     assert not await hass.config_entries.async_setup(found.entry_id)
     assert found.state is ConfigEntryState.SETUP_ERROR
+
+
+async def test_the_lots_read_the_recorded_prices_the_configuration_names(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """Prices a sources file names have the recorder's history from the start; the
+    integration's own sensors are read only where it names none."""
+    set_sources(hass)
+    named = options()
+    named[CONF_MEASURED] = {
+        **named[CONF_MEASURED],
+        "import_price": "sensor.buy",
+        "export_price": "sensor.sell",
+    }
+    found = MockConfigEntry(domain=DOMAIN, title="Home", data=entry().data, options=named)
+    await setup(hass, found)
+    assert found.runtime_data._price_entities() == ("sensor.buy", "sensor.sell")
+
+    own = entry()
+    await setup(hass, own)
+    assert own.runtime_data._price_entities() == (
+        entity_id(hass, own, "import_price"),
+        entity_id(hass, own, "export_price"),
+    )
+
+
+async def test_recorded_prices_not_loaded_or_in_another_currency_are_named(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """A recorded price not loaded yet waits (its unit unknown); one in a currency other
+    than Home Assistant's (a subunit, another code or another currency's symbol) is never
+    converted: the lots name it. Home Assistant's currency's code, its symbol, or no unit
+    pass."""
+    await hass.config.async_update(currency="EUR")
+    set_sources(hass)
+    found = entry()
+    await setup(hass, found)
+    coordinator = found.runtime_data
+    history = RecorderHistory(hass, {}, ("sensor.buy", "sensor.sell"))
+    history.units = {"sensor.buy": "EUR/MWh", "sensor.sell": None}
+    problem = coordinator._prices_problem(history)
+    assert problem is not None and "not available yet (sensor.buy, sensor.sell)" in problem
+    hass.states.async_set("sensor.buy", "85")
+    hass.states.async_set("sensor.sell", "0.04")
+    assert coordinator._prices_problem(history) is None
+    for unit in ("€/kWh", "", "eur/kWh", "EUR/MWh"):
+        history.units["sensor.sell"] = unit
+        assert coordinator._prices_problem(history) is None, unit
+    for unit in ("¢/kWh", "c/kWh", "cent/kWh", "Öre/kWh", "ct/kWh", "USD/kWh", "$/kWh"):
+        history.units["sensor.sell"] = unit
+        problem = coordinator._prices_problem(history)
+        assert problem is not None and f"sensor.sell in {unit}" in problem, unit
+
+
+async def test_the_lots_wait_for_their_price_sensors_without_spending_the_slot(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """A recorded price not available yet is checked again at the next refresh, not the
+    next slot: the try of the slot is not spent on it."""
+    set_sources(hass)
+    named = options()
+    named[CONF_MEASURED] = {
+        **named[CONF_MEASURED],
+        "import_price": "sensor.buy",
+        "export_price": "sensor.sell",
+    }
+    found = MockConfigEntry(domain=DOMAIN, title="Home", data=entry().data, options=named)
+    await setup(hass, found)
+    coordinator = found.runtime_data
+    assert "not available yet" in (coordinator._lots_problem or "")
+    assert coordinator._lots_tried is None

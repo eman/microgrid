@@ -3,8 +3,9 @@
 When the integration starts, the ledger runs in over :data:`RUN_IN` of history (all the
 battery held before then of unknown origin); then each completed slot is read on its own
 and stepped. The meters, the SOC and the house load are the measured entities; the
-prices each slot was charged at are the integration's own import and export price
-sensors, as recorded. The reads and the ledger run off the event loop (the coordinator
+prices each slot was charged at are the recorded prices the configuration names, else
+the integration's own import and export price sensors, as recorded (per kWh, from each
+entity's unit). The reads and the ledger run off the event loop (the coordinator
 runs :meth:`LotsTracker.update` in the recorder's executor); :meth:`LotsTracker.current`
 reads the lots the last step left, replaced whole. A failed read advances nothing and
 the lots go stale:

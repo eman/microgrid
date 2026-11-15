@@ -13,7 +13,7 @@ in the recorder's executor (:func:`run_in_recorder`), never on the event loop.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine, Mapping
+from collections.abc import Callable, Collection, Coroutine, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -42,12 +42,20 @@ async def run_in_recorder[T](hass: HomeAssistant, work: Callable[[], Coroutine[A
 
 class RecorderHistory:
     """The recorder, read through the library's ``History`` port, in the units
-    ``units`` names (each entity's ``unit_of_measurement``)."""
+    ``units`` names (each entity's ``unit_of_measurement``); the ``prices`` entities per
+    kWh."""
 
-    def __init__(self, hass: HomeAssistant, units: Mapping[str, str | None]) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        units: Mapping[str, str | None],
+        prices: Collection[str] = (),
+    ) -> None:
         self._hass = hass
         #: Each entity's unit, read on the event loop before a read.
         self.units: dict[str, str | None] = dict(units)
+        #: The recorded prices: read per kWh, from their unit (none: per kWh already).
+        self.prices = frozenset(prices)
 
     def _states(
         self, entity_id: str, start: datetime, end: datetime, *, at_start: bool
@@ -106,8 +114,22 @@ class RecorderHistory:
         carry_in: timedelta,
         chunk: timedelta = WEEK,
     ) -> Series[float]:
-        """Any numeric entity's values, the unit unchecked."""
-        return self._numbers(entity_id, start, end)
+        """Any numeric entity's values, the unit unchecked; a recorded price per kWh,
+        converted from its entity's unit (a currency is never converted)."""
+        found = self._numbers(entity_id, start, end)
+        unit = self.units.get(entity_id)
+        if entity_id not in self.prices or not unit:
+            return found
+        try:
+            return Series(
+                tuple(
+                    Sample(s.at, None if s.value is None else convert(s.value, unit, "price"))
+                    for s in found.samples
+                ),
+                end,
+            )
+        except UnitError as err:
+            raise LotsError(f"{entity_id}: {err}") from err
 
     async def sample_times(
         self,

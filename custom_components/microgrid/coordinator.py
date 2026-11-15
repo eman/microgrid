@@ -22,10 +22,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import partial
-from typing import Any
+from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
@@ -99,6 +100,34 @@ class Snapshot:
     #: Each input read, and its source; each not read, and why.
     sources: dict[str, str] = field(default_factory=dict)
     problems: dict[str, str] = field(default_factory=dict)
+
+
+#: Each currency's symbols, as a price's unit may name it in place of its code.
+_SYMBOLS: Final[Mapping[str, frozenset[str]]] = {
+    "EUR": frozenset({"€"}),
+    "USD": frozenset({"$", "US$"}),
+    "AUD": frozenset({"$", "A$", "AU$"}),
+    "CAD": frozenset({"$", "C$", "CA$"}),
+    "NZD": frozenset({"$", "NZ$"}),
+    "GBP": frozenset({"£"}),
+    "JPY": frozenset({"¥", "円"}),
+    "CNY": frozenset({"¥", "元"}),
+    "INR": frozenset({"₹"}),
+    "KRW": frozenset({"₩"}),
+    "SEK": frozenset({"kr"}),
+    "NOK": frozenset({"kr"}),
+    "DKK": frozenset({"kr"}),
+    "PLN": frozenset({"zł"}),
+    "BRL": frozenset({"R$"}),
+}
+
+
+def _same_currency(money: str, currency: str) -> bool:
+    """Whether a price's currency (``money``, its unit before the ``/``) is ``currency``
+    (an ISO code): its code, or one of its symbols. Anything else (a subunit such as
+    cents or öre, another code, a symbol of another currency) is not, as none is
+    converted."""
+    return money.casefold() == currency.casefold() or money in _SYMBOLS.get(currency, ())
 
 
 class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
@@ -279,12 +308,42 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
     # -- the battery's lots --------------------------------------------------------------
 
     def _price_entities(self) -> tuple[str | None, str | None]:
+        """The recorded prices the configuration names (``import_price``,
+        ``export_price``), else the integration's own *Import price* and *Export price*."""
+        measured = self.setup.measured
+        if measured is not None and measured.import_price and measured.export_price:
+            return measured.import_price, measured.export_price
         registry = er.async_get(self.hass)
         found = [
             registry.async_get_entity_id("sensor", DOMAIN, f"{self.config_entry.entry_id}_{key}")
             for key in ("import_price", "export_price")
         ]
         return found[0], found[1]
+
+    def _prices_problem(self, history: RecorderHistory) -> str | None:
+        """Why the recorded prices cannot price the lots now: an entity not loaded yet
+        (its unit unknown: checked again at the next refresh), or one in another currency than
+        Home Assistant's, in which the integration states the prices (none is converted):
+        anything but its code or one of its symbols (``€/kWh`` passes, ``¢/kWh`` not)."""
+        missing = sorted(
+            entity
+            for entity in history.prices
+            if (state := self.hass.states.get(entity)) is None or state.state == "unavailable"
+        )
+        if missing:
+            return f"the recorded prices are not available yet ({', '.join(missing)})"
+        currency = self.hass.config.currency
+        other = sorted(
+            f"{entity} in {unit}"
+            for entity in history.prices
+            # A unit with no "/" is no price's: the read names it.
+            if (unit := history.units.get(entity))
+            and "/" in unit
+            and not _same_currency(unit.rpartition("/")[0], currency)
+        )
+        if other:
+            return f"recorded prices not in {currency} ({', '.join(other)}): none is converted"
+        return None
 
     async def _update_lots(self, now: datetime) -> None:
         plant = self.setup.plant
@@ -313,21 +372,26 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             except LotsError as err:
                 self._lots_problem = str(err)
                 return
-            self._lots_history = RecorderHistory(self.hass, {})
+            self._lots_history = RecorderHistory(self.hass, {}, (import_price, export_price))
             self._lots = LotsTracker(self._lots_history, bound, slot)
         tracker, history = self._lots, self._lots_history
         assert history is not None
         due = tracker.due(now)
         if due == tracker.through or due == self._lots_tried:
             return  # stepped through it, or tried it: one try a slot
-        self._lots_tried = due
         # The units as their entities state them now, read here on the event loop.
         assert measured is not None  # the tracker is made from it
         history.units = {
             entity: self._unit(entity)
-            for entity in (*measured.meters.values(), measured.house)
+            for entity in (*measured.meters.values(), measured.house, *history.prices)
             if entity is not None
         }
+        if (problem := self._prices_problem(history)) is not None:
+            # Not a try: checked again at the next refresh (the integration's own price
+            # sensors are added after its first one).
+            self._lots_problem = problem
+            return
+        self._lots_tried = due
         try:
             await run_in_recorder(self.hass, lambda: tracker.update(now))
         except (LotsError, ValueError) as err:

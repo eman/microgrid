@@ -49,7 +49,9 @@ keep or change. It asks, in order:
    unit chosen here (percent or a fraction). A heartbeat entity, one that reports every
    few seconds, is optional: with one, a silent connection to the plant reads as
    unknown, not as steady values, in the valuation, the live value and the battery's
-   ledger.
+   ledger. The recorded import and export prices, both or neither, are optional too:
+   entities whose state is the price in force, which the battery's ledger reads (per
+   kWh, from their unit, in Home Assistant's currency).
 
    **Each meter's sign is checked.** The Energy dashboard's power sensors have a
    convention of their own: its grid sensor is positive importing, as the plant's grid
@@ -143,10 +145,13 @@ scheduler](scheduler.md) says which output answers which question.
   valuation.
 - **The battery's lots** are the library's ledger, run in over the recorder's last two
   days when the integration starts (in the recorder's executor), then stepped each slot, over the plant's meters,
-  the SOC, the house load and the integration's own *Import price* and *Export price*
-  as recorded. On a new install those have no history yet: the valuation names
-  `battery_lots` and prices what the battery holds as bought at the import until the
-  recorder has them.
+  the SOC, the house load and the prices in force as recorded: the recorded import and
+  export prices the measured entities name (`import_price`, `export_price` in a
+  `sources/1` file's `[measured]`), else the integration's own *Import price* and
+  *Export price*. A recorded price in another currency than Home Assistant's is named,
+  not converted. On a new install those
+  have no history yet: the valuation names `battery_lots` and prices what the battery
+  holds as bought at the import until the recorder has them.
 
 A source that has failed every read for 30 minutes raises a repair issue, which clears
 when it reads again. The entry's diagnostics hold the configuration (entity ids redacted), what each

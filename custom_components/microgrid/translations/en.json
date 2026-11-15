@@ -60,12 +60,16 @@
           "meter_battery": "Battery meter",
           "meter_dc_load": "DC-bus load meter",
           "meter_consumption": "Consumption meter",
-          "soc_unit": "The SOC's unit, where its entity states none"
+          "soc_unit": "The SOC's unit, where its entity states none",
+          "import_price": "Recorded import price",
+          "export_price": "Recorded export price"
         },
         "data_description": {
           "house": "The load the plant serves, as it meters it: the live value's.",
           "dispatch": "An entity whose state is the plant's mode. Without one, set whether the plant always runs as modelled.",
-          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it."
+          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it.",
+          "import_price": "The import price in force, as the recorder keeps it, for the battery's lots; with the export price, or neither (then the integration's own price sensors).",
+          "export_price": "The export price in force, as the recorder keeps it, for the battery's lots."
         }
       },
       "prices": {
@@ -282,12 +286,16 @@
           "meter_battery": "Battery meter",
           "meter_dc_load": "DC-bus load meter",
           "meter_consumption": "Consumption meter",
-          "soc_unit": "The SOC's unit, where its entity states none"
+          "soc_unit": "The SOC's unit, where its entity states none",
+          "import_price": "Recorded import price",
+          "export_price": "Recorded export price"
         },
         "data_description": {
           "house": "The load the plant serves, as it meters it: the live value's.",
           "dispatch": "An entity whose state is the plant's mode. Without one, set whether the plant always runs as modelled.",
-          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it."
+          "heartbeat": "An entity that reports every few seconds; without one, the house load stands for it.",
+          "import_price": "The import price in force, as the recorder keeps it, for the battery's lots; with the export price, or neither (then the integration's own price sensors).",
+          "export_price": "The export price in force, as the recorder keeps it, for the battery's lots."
         }
       },
       "prices": {

@@ -2,7 +2,9 @@
 series, the battery's lots against the library's offline ledger, and the recorder read
 as recorded history."""
 
+from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from custom_components.microgrid.issuing import Basis, IssuePolicy, LastIssue, Reason, decide
@@ -17,6 +19,7 @@ from pytest_homeassistant.components.recorder.common import (
 
 from ha_fixtures import REPO
 from microgrid.cli.dataset import DatasetHistory, read_dataset
+from microgrid.cli.history import LotsError
 from microgrid.cli.offline import (
     dataset_bindings,
     dataset_lots_async,
@@ -25,7 +28,7 @@ from microgrid.cli.offline import (
 )
 from microgrid.cli.sources.config import Measured
 from microgrid.engine import Assessment, ValuationKind
-from microgrid.engine.series import slot_floor
+from microgrid.engine.series import Series, slot_floor
 
 T0 = datetime(2026, 10, 22, 10, 0, tzinfo=UTC)
 MINUTE = timedelta(minutes=1)
@@ -139,3 +142,33 @@ async def test_the_recorder_reads_as_recorded_history(
     beats = await history.sample_times("sensor.pv", start, end, carry_in=MINUTE)
     assert beats == (T0 + 5 * MINUTE, T0 + 10 * MINUTE)
     assert slot_floor(T0 + 9 * MINUTE, timedelta(minutes=10)) == T0
+
+
+async def test_a_recorded_price_is_read_per_kwh(
+    recorder_mock: object, hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """A recorded price in another energy unit is read per kWh; an entity that is not a
+    price is read as it is; a unit that is not a price's is named."""
+    freezer.move_to(T0)
+    hass.states.async_set("sensor.buy", "85", {"unit_of_measurement": "EUR/MWh"})
+    hass.states.async_set("sensor.odd", "3", {"unit_of_measurement": "EUR/MWh"})
+    hass.states.async_set("sensor.bad", "3", {"unit_of_measurement": "kW"})
+    await async_wait_recording_done(hass)
+    hass.states.async_set("sensor.plain", "0.3")
+    await async_wait_recording_done(hass)
+    units = {"sensor.buy": "EUR/MWh", "sensor.odd": "EUR/MWh", "sensor.bad": "kW"}
+    units["sensor.plain"] = ""  # no unit: per kWh already
+    history = RecorderHistory(hass, units, ("sensor.buy", "sensor.bad", "sensor.plain"))
+    start, end = T0 + MINUTE, T0 + 20 * MINUTE
+
+    def read(entity: str) -> Callable[[], Coroutine[Any, Any, Series[float]]]:
+        return lambda: history.numeric_series(entity, start, end, carry_in=timedelta(days=1))
+
+    buy = await run_in_recorder(hass, read("sensor.buy"))
+    assert [s.value for s in buy.samples] == [0.085]
+    odd = await run_in_recorder(hass, read("sensor.odd"))
+    assert [s.value for s in odd.samples] == [3.0]
+    plain = await run_in_recorder(hass, read("sensor.plain"))
+    assert [s.value for s in plain.samples] == [0.3]
+    with pytest.raises(LotsError, match=r"sensor\.bad"):
+        await run_in_recorder(hass, read("sensor.bad"))
