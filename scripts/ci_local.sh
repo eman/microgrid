@@ -43,7 +43,14 @@ uv run --locked mypy
 
 docs
 
-step "pytest"
-uv run --locked pytest -m "not live" --cov --cov-report=term
+step "pytest (the library, without Home Assistant)"
+# Home Assistant's harness loads in every session, and Home Assistant 2026.11 makes
+# `import httpx` resolve to httpx2 process-wide: the library outside Home Assistant runs
+# on httpx itself, so it is tested without the harness.
+uv run --locked pytest -m "not live" --ignore=tests/ha -p no:pytest_homeassistant \
+  --cov --cov-report=
+
+step "pytest (the Home Assistant integration)"
+uv run --locked pytest -m "not live" tests/ha --cov --cov-append --cov-report=term
 
 printf '\nlocal CI: all checks passed\n'
