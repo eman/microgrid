@@ -4,7 +4,12 @@ source checked by the library and read once."""
 from typing import Any
 
 import pytest
-from custom_components.microgrid.config_flow import measured_from_form, section_from_form
+from custom_components.microgrid.config_flow import (
+    check_measured,
+    measured_from_form,
+    measured_schema,
+    section_from_form,
+)
 from custom_components.microgrid.const import (
     CONF_ENGINE,
     CONF_LOAD_FORECAST,
@@ -14,7 +19,7 @@ from custom_components.microgrid.const import (
     CONF_PV_FORECAST,
     DOMAIN,
 )
-from custom_components.microgrid.setup import read_plant
+from custom_components.microgrid.setup import SetupError, read_plant
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
@@ -242,8 +247,9 @@ def test_a_form_becomes_its_section() -> None:
     }
 
 
-def test_the_measured_form_keeps_what_a_file_set_and_it_does_not_show() -> None:
-    """A file's recorded prices and inverter survive an edit of the measured form."""
+def test_the_measured_form_shows_the_recorded_prices_and_keeps_the_inverter() -> None:
+    """The measured form edits the recorded prices; the inverter, which it does not show,
+    survives an edit; the prices are both named or neither."""
     plant = read_plant(plant_data(), "Europe/Berlin")
     form = {
         "meter_pv": "sensor.pv_power",
@@ -262,7 +268,16 @@ def test_the_measured_form_keeps_what_a_file_set_and_it_does_not_show() -> None:
     }
     section = measured_from_form(plant, form, kept)
     assert section["soc"] == "sensor.battery_soc"  # the form's
-    assert section["import_price"] == "sensor.buy"
-    assert section["export_price"] == "sensor.sell"
-    assert section["inverter"] == "sensor.inverter_power"
-    assert "import_price" not in measured_from_form(plant, form)
+    assert section["inverter"] == "sensor.inverter_power"  # not shown: kept
+    # The recorded prices are the form's: cleared where it leaves them out.
+    assert "import_price" not in section and "export_price" not in section
+    priced = measured_from_form(
+        plant, {**form, "import_price": "sensor.buy2", "export_price": "sensor.sell2"}, kept
+    )
+    assert (priced["import_price"], priced["export_price"]) == ("sensor.buy2", "sensor.sell2")
+    schema = measured_schema(plant, kept)
+    suggested = {str(key): key.description for key in schema.schema if key.description}
+    assert suggested["import_price"] == {"suggested_value": "sensor.buy"}
+    check_measured(plant, priced)
+    with pytest.raises(SetupError, match="both, or neither"):
+        check_measured(plant, {**priced, "export_price": None})

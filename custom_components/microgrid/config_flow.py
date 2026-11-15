@@ -497,11 +497,15 @@ def measured_schema(plant: Plant, current: Mapping[str, Any]) -> vol.Schema:
             )
         ] = selector.BooleanSelector()
     schema[optional("heartbeat", current.get("heartbeat"))] = selector.EntitySelector()
+    if plant.storage is not None:
+        schema[optional("import_price", current.get("import_price"))] = power
+        schema[optional("export_price", current.get("export_price"))] = power
     return vol.Schema(schema)
 
 
-#: The measured section's keys a file sets and the form does not show: kept as they are.
-_MEASURED_KEPT = ("import_price", "export_price", "inverter")
+#: The measured section's key a file sets and the form does not show (the inverter's AC
+#: power, read only by ``microgrid fit-battery``): kept as it is.
+_MEASURED_KEPT = ("inverter",)
 
 
 def measured_from_form(
@@ -518,6 +522,9 @@ def measured_from_form(
         if form.get(key):
             section[key] = form[key]
     if plant.storage is not None:
+        for key in ("import_price", "export_price"):
+            if form.get(key):
+                section[key] = form[key]
         if form.get("soc_unit") == _SOC_FRACTION:
             section["soc_unit"] = ""
         if form.get("dispatch"):
@@ -534,6 +541,8 @@ def check_measured(plant: Plant, section: Mapping[str, Any]) -> None:
     problems: list[str] = []
     if plant.storage is not None and not section.get("soc"):
         problems.append("soc: a plant with a battery needs its SOC")
+    if bool(section.get("import_price")) != bool(section.get("export_price")):
+        problems.append("import_price, export_price: the battery's lots read both, or neither")
     try:
         read_measured(section)
     except SetupError as err:

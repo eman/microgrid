@@ -14,6 +14,7 @@ from custom_components.microgrid.const import (
     SERVICE_GET_VALUATION,
 )
 from custom_components.microgrid.diagnostics import async_get_config_entry_diagnostics
+from custom_components.microgrid.recorder_history import RecorderHistory
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
@@ -227,3 +228,20 @@ async def test_the_lots_read_the_recorded_prices_the_configuration_names(
         entity_id(hass, own, "import_price"),
         entity_id(hass, own, "export_price"),
     )
+
+
+async def test_recorded_prices_in_another_currency_are_named(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """A recorded price in a currency other than Home Assistant's is never converted: the
+    lots name it, and a price in Home Assistant's currency or with no unit passes."""
+    await hass.config.async_update(currency="EUR")
+    set_sources(hass)
+    found = entry()
+    await setup(hass, found)
+    history = RecorderHistory(hass, {}, ("sensor.buy", "sensor.sell"))
+    history.units = {"sensor.buy": "EUR/MWh", "sensor.sell": None}
+    assert found.runtime_data._currency_problem(history) is None
+    history.units["sensor.sell"] = "¢/kWh"
+    problem = found.runtime_data._currency_problem(history)
+    assert problem is not None and "sensor.sell in ¢/kWh" in problem and "EUR" in problem

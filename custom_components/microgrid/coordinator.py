@@ -291,6 +291,20 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         ]
         return found[0], found[1]
 
+    def _currency_problem(self, history: RecorderHistory) -> str | None:
+        """Why the recorded prices cannot price the lots: a currency other than Home
+        Assistant's, in which the integration states the prices (none is converted)."""
+        currency = self.hass.config.currency
+        other = sorted(
+            f"{entity} in {unit}"
+            for entity in history.prices
+            if (unit := history.units.get(entity)) is not None
+            and unit.rpartition("/")[0] not in ("", currency)
+        )
+        if other:
+            return f"recorded prices not in {currency} ({', '.join(other)}): none is converted"
+        return None
+
     async def _update_lots(self, now: datetime) -> None:
         plant = self.setup.plant
         measured = self.setup.measured
@@ -318,7 +332,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
             except LotsError as err:
                 self._lots_problem = str(err)
                 return
-            self._lots_history = RecorderHistory(self.hass, {})
+            self._lots_history = RecorderHistory(self.hass, {}, (import_price, export_price))
             self._lots = LotsTracker(self._lots_history, bound, slot)
         tracker, history = self._lots, self._lots_history
         assert history is not None
@@ -330,9 +344,12 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         assert measured is not None  # the tracker is made from it
         history.units = {
             entity: self._unit(entity)
-            for entity in (*measured.meters.values(), measured.house)
+            for entity in (*measured.meters.values(), measured.house, *history.prices)
             if entity is not None
         }
+        if (problem := self._currency_problem(history)) is not None:
+            self._lots_problem = problem
+            return
         try:
             await run_in_recorder(self.hass, lambda: tracker.update(now))
         except (LotsError, ValueError) as err:
