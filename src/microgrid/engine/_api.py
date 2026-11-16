@@ -49,7 +49,15 @@ from microgrid._checks import require_utc
 from microgrid.engine import _engine_config
 from microgrid.engine._assess import Assessment, Cause, InputState, ValuationKind, assess
 from microgrid.engine._inputs import Inputs, issued, reading_at
-from microgrid.engine._live import Smoothed, _median, importing_now, revalue, smoothed, window
+from microgrid.engine._live import (
+    JUMP_CONFIRM,
+    Smoothed,
+    _median,
+    importing_now,
+    revalue,
+    smoothed,
+    window,
+)
 from microgrid.engine._stored import Lots, project_average
 from microgrid.engine._supply import Step, supply_stack
 from microgrid.engine._surplus import PvMaybe, forecast_surplus
@@ -1319,7 +1327,9 @@ def _held_now(
     battery, else None. Held: the battery idle, neither giving nor taking more than
     the meters' floors (``EngineConfig.observed``: ``need_kw``, ``charge_kw``), above its
     reserve and able to serve the house (``Storage.can_serve``), while the house imports
-    beyond the plant's regulation (``regulation_kw``). Both the averages and the readings
+    beyond the plant's regulation (``regulation_kw``); able to serve is room to give more
+    than that regulation, however much more the house draws (less room is regulation's
+    to tell from a hold). Both the averages and the readings
     in force must show it: an average lags a change (a battery starting to discharge as
     the grid falls passes through idle while the grid still reads high). A battery at
     its discharge limit, behind an inverter at its rating, or charging, is not held.
@@ -1341,7 +1351,7 @@ def _held_now(
             flow.battery_out <= noise.need_kw
             and taking <= noise.charge_kw
             and flow.grid_to_load > max(noise.short_kw, noise.regulation_kw)
-            and storage.can_serve(flow, flow.grid_to_load)
+            and storage.can_serve(flow, max(noise.need_kw, noise.regulation_kw))
         ):
             return None
     return averaged
@@ -1352,17 +1362,30 @@ def _held_by_model(
 ) -> bool:
     """Whether the plant model holds the battery now, as its dispatch does (a hold
     rule's session, a top-up, its grid-charge window): the run's first slot, its median
-    case's as the surplus's; and, for a plant with DC-bus loads, that slot again at the
-    DC-bus loads' measured draw, as a session the load forecast does not hold (a
-    client without one values on 0 kW) opens a hold rule's session all the same."""
+    case's as the surplus's. For a plant with DC-bus loads, that slot again at their
+    measured draw, as a session the load forecast does not hold (a client without one
+    values on 0 kW) opens a hold rule's session all the same. And within
+    :data:`~microgrid.engine._live.JUMP_CONFIRM` of the slot's start, the slot before
+    it too: a meter that has not yet reported a change still reads as the plant held
+    the battery a moment ago (the grid-charge window just ended). Where the meters
+    cannot say what the plant does now, it holds: nothing is raised."""
     dispatch = model.flows[_median(model)][0].dispatch
     if dispatch.held or dispatch.topup_gap is not None:
         return True
     plant = config.plant
-    dc_names = [name for name, measures in plant.meters.items() if measures == "dc_load"]
-    if not plant.has_dc_loads or not dc_names:
+    moments: list[tuple[datetime, timedelta]] = []
+    if plant.has_dc_loads:
+        moments.append((r.now, r.starts[0] + config.slot - r.now))
+    if r.now - r.starts[0] < JUMP_CONFIRM:
+        moments.append((r.starts[0] - config.slot, config.slot))
+    if not moments:
         return False
-    dc_kw = meters.get(dc_names[0])
+    dc_kw: float | None = None
+    if plant.has_dc_loads:
+        names = [name for name, measures in plant.meters.items() if measures == "dc_load"]
+        dc_kw = meters.get(names[0]) if names else None
+        if dc_kw is None:
+            return True
     load_kw = r.load_kw[0]
     pv: PvKw | None = None
     if r.by_array is not None:
@@ -1371,17 +1394,20 @@ def _held_by_model(
             pv = {name: [q.median] for name, q in first.items() if q is not None}
     elif r.stepped is not None and r.stepped[0] is not None:
         pv = [r.stepped[0].median]
-    if dc_kw is None or load_kw is None or pv is None:
-        return True  # what the plant does now cannot be told: raise nothing
-    (flow,) = plant.project(
-        [r.now],
-        [r.starts[0] + config.slot - r.now],
-        pv,
-        [load_kw],
-        r.soc,
-        dc_load_kw=[dc_kw],
-    )
-    return flow.dispatch.held or flow.dispatch.topup_gap is not None
+    if load_kw is None or pv is None:
+        return True
+    for start, duration in moments:
+        (flow,) = plant.project(
+            [start],
+            [duration],
+            pv,
+            [load_kw],
+            r.soc,
+            dc_load_kw=None if dc_kw is None else [dc_kw],
+        )
+        if flow.dispatch.held or flow.dispatch.topup_gap is not None:
+            return True
+    return False
 
 
 def _throughout[T](

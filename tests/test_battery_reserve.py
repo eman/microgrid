@@ -300,3 +300,24 @@ def test_the_warm_live_value_follows_the_hold() -> None:
     assert Cause.BATTERY_RESERVE not in released.degraded
     assert released.regime == "battery"
     assert released.marginal_cost is not None and released.marginal_cost < 0.30
+
+
+@pytest.mark.parametrize("grid_kw", [0.6, 3.0, 5.5, 6.5, 8.0])
+def test_a_hold_is_told_however_much_the_house_draws(grid_kw: float) -> None:
+    """The battery held while the house draws more than its 6 kW limit is still held:
+    able to serve is room to give more than the plant's regulation, not all of it."""
+    valuation = Engine(_config()).value(_inputs(_meters(battery_kw=0.0, grid_kw=grid_kw)), at=NOW)
+    assert Cause.BATTERY_RESERVE in valuation.degraded
+
+
+def test_meters_not_yet_reporting_a_release_are_not_a_hold() -> None:
+    """05:00:05, the grid-charge window just ended: the meters have not yet reported the
+    battery starting to serve, and still read it held. The model held it a moment ago,
+    so nothing is raised; a reading that still shows the hold past ``JUMP_CONFIRM`` is
+    one."""
+    engine = Engine(_config())
+    for seconds, told in ((5, False), (25, False), (60, True)):
+        at = WINDOW_END + timedelta(seconds=seconds)
+        meters = _meters(battery_kw=0.0, grid_kw=0.8, pv_kw=0.0, at=at)
+        valuation = engine.value(_inputs(meters, soc=0.6, at=at), at=at)
+        assert (Cause.BATTERY_RESERVE in valuation.degraded) is told, seconds
