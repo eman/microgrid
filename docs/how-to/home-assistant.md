@@ -114,7 +114,7 @@ response_variable: found
 
 ```json
 {
-  "valuation": {"model_version": "pricing/1.3", "now": "2026-10-22T10:03:00+00:00",
+  "valuation": {"model_version": "pricing/1.4", "now": "2026-10-22T10:03:00+00:00",
                 "kind": "stored_value_v1", "degraded": [], "slots": ["..."]},
   "reason": "forecast_basis",
   "valid_until": "2026-10-22T10:33:00+00:00",

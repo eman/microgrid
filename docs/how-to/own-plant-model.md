@@ -17,6 +17,7 @@ them can stand in for `Plant` ([The plant model](../concepts/plant-model.md)).
 | `has_dc_loads` | whether a load is on a hybrid's DC bus |
 | `meters` | its meters, by name, to what each measures |
 | `pv_from_meters`, `read_meters`, `metered_flow` | its meters read as PV, as flows, and as a slot for the live value |
+| `with_reserve(soc)` | the same plant keeping `soc` in reserve, a floor above its configured one: what a valuation runs where the meters show the plant holding its battery (`battery_reserve`) |
 
 `Storage.stored_per_kwh(source, flow)` is the one question the default price rule (the
 stored cost, `battery_value = "stored_cost"`) asks of the battery: stored kWh per kWh
@@ -118,6 +119,9 @@ class MyPlant:
         self, start: datetime, soc: float | None, reading: MeterReading
     ) -> SlotFlow | None:
         return self._base.metered_flow(start, soc, reading)
+
+    def with_reserve(self, soc: float) -> PlantModel:
+        return MyPlant(self._base.with_reserve(soc))
 
 
 base = Plant(examples.example_plant("ac_coupled_hybrid", ZoneInfo("Europe/Berlin")))

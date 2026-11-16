@@ -146,6 +146,32 @@ class Plant:
             len(arrays) <= 1 or not capped or all(a.dc_rating_kw is not None for a in arrays),
         )
 
+    def with_reserve(self, soc: float) -> Plant:
+        part = self.config.battery
+        if part is None:
+            raise ValueError("the plant has no battery: it keeps no reserve")
+        if not part.battery.reserve_soc <= soc < part.battery.saturation_soc:
+            raise ValueError(
+                f"a reserve of {soc} must lie from the configured "
+                f"{part.battery.reserve_soc} to below saturation"
+            )
+        battery = replace(part.battery, reserve_soc=soc)
+        # The rules the floor bounds: a grid-charge window to a target at or below it,
+        # or a hold rule for sessions starting below it, can no longer act; an export
+        # window stops at it.
+        dispatch = self.config.dispatch
+        dispatch = replace(
+            dispatch,
+            grid_charge=tuple(w for w in dispatch.grid_charge if w.target_soc > soc),
+            export_windows=tuple(
+                replace(w, floor_soc=max(w.floor_soc, soc)) for w in dispatch.export_windows
+            ),
+            hold_rules=tuple(r for r in dispatch.hold_rules if r.start_below_soc > soc),
+        )
+        return Plant(
+            replace(self.config, battery=replace(part, battery=battery), dispatch=dispatch)
+        )
+
     @property
     def storage(self) -> PathStorage | None:
         return self._storage

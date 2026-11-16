@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import tomllib
 from bisect import bisect_right
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -147,11 +147,17 @@ def load_setup(
 
 
 def engine_inputs(
-    setup: Setup, read: Inputs, at: datetime, lots: Series[Lots] | None = None
+    setup: Setup,
+    read: Inputs,
+    at: datetime,
+    lots: Series[Lots] | None = None,
+    meters: Mapping[str, Series[float]] | None = None,
 ) -> Inputs:
     """The engine's inputs at ``at`` from a dataset's (``inputs.inputs``), with the
-    battery's ``lots`` (:func:`dataset_lots`). A plant with DC-bus loads and no forecast
-    of them takes a forecast of 0, labelled so (``inputs.no_dc_forecast``)."""
+    battery's ``lots`` (:func:`dataset_lots`) and the plant's ``meters``, where the
+    dataset has them (a valuation reads whether the plant holds its battery). A plant
+    with DC-bus loads and no forecast of them takes a forecast of 0, labelled so
+    (``inputs.no_dc_forecast``)."""
     plant = setup.plant
     dc_load = read.dc_load
     config = setup.engine.config
@@ -164,6 +170,7 @@ def engine_inputs(
         dc_load=dc_load,
         soc=read.soc,
         dispatch_as_modelled=read.dispatch_as_modelled,
+        meters=dict(meters or {}) if plant.storage is not None else {},
         lots=lots if plant.storage is not None else None,
     )
 
@@ -289,7 +296,16 @@ def value_with(
     """:func:`value` with the battery's ``lots`` given (read once for many valuations)."""
     require_utc(at)
     read = inputs(dataset, has_dc_loads=setup.plant.has_dc_loads)
-    return setup.engine.value(engine_inputs(setup, read, at, lots), at=at)
+    return setup.engine.value(
+        engine_inputs(setup, read, at, lots, _dataset_meters(setup, dataset)), at=at
+    )
+
+
+def _dataset_meters(setup: Setup, dataset: Dataset) -> dict[str, Series[float]]:
+    """The plant's meters as the dataset records them, kW; none where it lacks one."""
+    if any(dataset.series(name) is None for name in setup.plant.meters):
+        return {}
+    return _meter_series(setup, dataset)
 
 
 @dataclass(frozen=True, slots=True)
@@ -328,9 +344,8 @@ def _vouched[T](series: Series[T], spans: tuple[tuple[datetime, datetime], ...])
     return Series.of(points, known_until=series.known_until, unit=series.unit)
 
 
-def _measured(setup: Setup, dataset: Dataset, stale_after: timedelta) -> _Measured:
-    """The meters, the house load, the SOC and the dispatch as series, with no value where
-    the heartbeat was silent longer than ``stale_after``."""
+def _meter_series(setup: Setup, dataset: Dataset) -> dict[str, Series[float]]:
+    """The plant's meters as the dataset records them, kW (PV floored at 0)."""
     meters: dict[str, Series[float]] = {}
     for name, kind in setup.plant.meters.items():
         series = dataset.series(name)
@@ -338,6 +353,13 @@ def _measured(setup: Setup, dataset: Dataset, stale_after: timedelta) -> _Measur
             raise DatasetError(f"{name}: the plant's meter is not in the dataset")
         kw = normalise(cast("Series[float]", series), "power")
         meters[name] = _floor(kw) if kind == "pv" else kw
+    return meters
+
+
+def _measured(setup: Setup, dataset: Dataset, stale_after: timedelta) -> _Measured:
+    """The meters, the house load, the SOC and the dispatch as series, with no value where
+    the heartbeat was silent longer than ``stale_after``."""
+    meters = _meter_series(setup, dataset)
     house = dataset.series(HOUSE)
     beats = dataset.series(HEARTBEAT)
     read = inputs(dataset, has_dc_loads=setup.plant.has_dc_loads)
@@ -405,7 +427,9 @@ def live(
     at = start
     while at < end:
         if at >= next_issue:
-            found = setup.engine.value(engine_inputs(setup, read, at, lots), at=at)
+            found = setup.engine.value(
+                engine_inputs(setup, read, at, lots, measured.inputs.meters), at=at
+            )
             if found.kind is not ValuationKind.UNPRICED:
                 valuation, valid_until = found, at + valid_for
             while next_issue <= at:

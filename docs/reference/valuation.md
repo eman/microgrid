@@ -14,7 +14,7 @@ field's meaning is defined once in [Outputs](../concepts/outputs.md).
 
 | Field | Type | Meaning |
 |---|---|---|
-| `model_version` | string | the version of the price rule and plant model that made it (`pricing/1.3`); it changes when a change to either would change a value |
+| `model_version` | string | the version of the price rule and plant model that made it (`pricing/1.4`); it changes when a change to either would change a value |
 | `now` | time | the moment valued, to the whole second |
 | `kind` | `stored_value_v1`, `fallback_import`, `unpriced` | how the values were made ([kinds](causes.md#kinds)) |
 | `degraded` | list of causes | the inputs that could not be used ([causes](causes.md)) |
@@ -63,7 +63,7 @@ week's solar and the night's top-up at 0.18 (the lots from the dataset's meters)
 
 ```json
 {
-  "model_version": "pricing/1.3",
+  "model_version": "pricing/1.4",
   "now": "2026-10-22T11:00:00+00:00",
   "kind": "stored_value_v1",
   "degraded": [],

@@ -226,6 +226,13 @@ class PlantModel(Protocol):
         (missing, or None) leaves the split unknown: None."""
         ...
 
+    def with_reserve(self, soc: float) -> PlantModel:
+        """The same plant keeping ``soc`` (0-1) in reserve: a floor above its configured
+        one, as the meters may show the plant holding its battery (the price model's
+        ``battery_reserve`` cause). ``ValueError`` without a battery, or at or above
+        its saturation."""
+        ...
+
     def metered_flow(
         self, start: datetime, soc: float | None, reading: MeterReading
     ) -> SlotFlow | None:

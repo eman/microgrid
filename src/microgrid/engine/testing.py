@@ -130,6 +130,15 @@ def assert_plant_model_contract(plant: PlantModel) -> None:
     if storage is not None:
         _check(storage.capacity_kwh > 0, "capacity")
         _check(0 <= storage.reserve_soc < storage.saturation_soc <= 1, "reserve, saturation")
+        # A floor raised above the configured one, as a valuation takes it where the
+        # meters show the plant holding its battery.
+        raised = (storage.reserve_soc + storage.saturation_soc) / 2
+        held = plant.with_reserve(raised).storage
+        _check(held is not None and abs(held.reserve_soc - raised) < 1e-9, "with_reserve")
+        _check(plant.storage is not None and plant.storage.reserve_soc < raised, "with_reserve")
+        _raises(lambda: plant.with_reserve(storage.saturation_soc), "", "with_reserve at full")
+    else:
+        _raises(lambda: plant.with_reserve(0.5), "", "with_reserve without a battery")
     capacity = storage.capacity_kwh if storage is not None else 0.0
     for pv_peak, load, start_soc in ((0.0, 0.7, 0.5), (6.0, 0.7, 0.2), (9.0, 2.5, 0.95)):
         pv, house = _day(pv_peak if plant.has_pv else 0.0, load)
