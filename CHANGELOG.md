@@ -4,6 +4,8 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-16
+
 ### Fixed
 
 - A valuation no longer offers the battery's energy when the plant holds the battery

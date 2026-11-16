@@ -14,7 +14,7 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/eman/microgrid/issues",
   "requirements": [
-    "microgrid[sources]==0.1.6.dev0"
+    "microgrid[sources]==0.2.0"
   ],
-  "version": "0.1.6.dev0"
+  "version": "0.2.0"
 }
