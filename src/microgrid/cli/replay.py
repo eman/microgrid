@@ -26,7 +26,7 @@ from microgrid.cli.evaluation import (
 )
 from microgrid.cli.history import DAY, Bindings, History, Limits, read_recorded, stored_costs
 from microgrid.cli.inputs import currency
-from microgrid.cli.offline import Setup, dataset_lots_async, value_with
+from microgrid.cli.offline import Setup, dataset_lots_async, dataset_meters, value_with
 from microgrid.engine import ValuationKind
 from microgrid.engine.analysis.ground_truth import meters_plant
 from microgrid.engine.analysis.scoring import (
@@ -63,9 +63,10 @@ async def run(
     #: R-7).
     fell_back: Counter[str] = Counter()
     lots = await dataset_lots_async(setup, dataset, limits=limits)
+    metered = dataset_meters(setup, dataset, limits=limits)
     at = start
     while at < end:
-        valuation = value_with(setup, dataset, at, lots)
+        valuation = value_with(setup, dataset, at, lots, metered)
         if valuation.kind is ValuationKind.UNPRICED:
             unpriced += 1
         elif valuation.kind is not ValuationKind.STORED_VALUE_V1:

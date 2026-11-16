@@ -70,6 +70,7 @@ __all__ = [
     "dataset_bindings",
     "dataset_lots",
     "dataset_lots_async",
+    "dataset_meters",
     "engine_inputs",
     "limits_of",
     "live",
@@ -287,25 +288,34 @@ def value(
     """The valuation at ``at`` from what the dataset says was received by then
     (``unpriced`` without a price for the slot under way), the battery's lots from the
     dataset's meters (:func:`dataset_lots`)."""
-    return value_with(setup, dataset, at, dataset_lots(setup, dataset, limits=limits))
+    lots = dataset_lots(setup, dataset, limits=limits)
+    return value_with(setup, dataset, at, lots, dataset_meters(setup, dataset, limits=limits))
 
 
 def value_with(
-    setup: Setup, dataset: Dataset, at: datetime, lots: Series[Lots] | None
+    setup: Setup,
+    dataset: Dataset,
+    at: datetime,
+    lots: Series[Lots] | None,
+    meters: Mapping[str, Series[float]] | None = None,
 ) -> Valuation:
-    """:func:`value` with the battery's ``lots`` given (read once for many valuations)."""
+    """:func:`value` with the battery's ``lots`` and the plant's ``meters``
+    (:func:`dataset_meters`) given, read once for many valuations."""
     require_utc(at)
     read = inputs(dataset, has_dc_loads=setup.plant.has_dc_loads)
-    return setup.engine.value(
-        engine_inputs(setup, read, at, lots, _dataset_meters(setup, dataset)), at=at
-    )
+    return setup.engine.value(engine_inputs(setup, read, at, lots, meters), at=at)
 
 
-def _dataset_meters(setup: Setup, dataset: Dataset) -> dict[str, Series[float]]:
-    """The plant's meters as the dataset records them, kW; none where it lacks one."""
-    if any(dataset.series(name) is None for name in setup.plant.meters):
+def dataset_meters(
+    setup: Setup, dataset: Dataset, *, limits: Limits | None = None
+) -> dict[str, Series[float]]:
+    """The plant's meters as the dataset records them, kW, with no value where the
+    heartbeat was silent (as the live value reads them); none where the dataset lacks
+    one, or for a plant without a battery (a valuation reads them for its hold)."""
+    names = setup.plant.meters
+    if setup.plant.storage is None or any(dataset.series(name) is None for name in names):
         return {}
-    return _meter_series(setup, dataset)
+    return dict(_measured(setup, dataset, limits_of(dataset, limits).telemetry).inputs.meters)
 
 
 @dataclass(frozen=True, slots=True)

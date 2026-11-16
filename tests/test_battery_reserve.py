@@ -9,11 +9,15 @@ floor for the run, and ``battery_reserve`` is named.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
 
+from engine_fixtures import NOW as EV_NOW
+from engine_fixtures import inputs as ev_inputs
+from engine_fixtures import reading
 from microgrid.engine import (
     Cause,
     Engine,
@@ -27,8 +31,9 @@ from microgrid.engine import (
 )
 from microgrid.engine import series as ts
 from microgrid.engine.ledger import Amount, Lots
-from microgrid.plant import Plant
+from microgrid.plant import Dispatch, Plant
 from microgrid.plant.examples import example_plant
+from test_dc_loads import EV_PLANT, HOLD, _engine, _evening_ev
 
 BERLIN = ZoneInfo("Europe/Berlin")
 NOW = datetime(2026, 11, 16, 9, 3, 7, tzinfo=UTC)  # a dull November morning
@@ -198,3 +203,100 @@ def test_a_battery_that_moves_is_not_held(battery_kw: float, grid_kw: float) -> 
     engine = Engine(_config())
     moving = engine.value(_inputs(_meters(battery_kw=battery_kw, grid_kw=grid_kw)), at=NOW)
     assert Cause.BATTERY_RESERVE not in moving.degraded
+
+
+def _steps(before: float, after: float, change: datetime, at: datetime) -> ts.Series[float]:
+    return ts.Series.of([(change - 30 * MIN, before), (change, after)], known_until=at)
+
+
+#: 05:00 CET: the example plant's grid-charge window (01:00-05:00) ends.
+WINDOW_END = datetime(2026, 11, 16, 4, 0, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("grid", "battery", "soc", "seconds"),
+    [
+        # Held at the target through the window, then released to serve the house.
+        ((0.8, 0.0), (0.0, -0.8), 0.6, (5, 15, 30, 45, 60, 120)),
+        # A late top-up charging to the window's end, then serving the house.
+        ((3.8, 0.0), (3.0, -0.8), 0.55, (400, 430, 460, 490, 520, 560)),
+    ],
+)
+def test_a_battery_starting_to_serve_is_not_held_while_the_averages_lag(
+    grid: tuple[float, float], battery: tuple[float, float], soc: float, seconds: tuple[int, ...]
+) -> None:
+    """As the battery starts discharging and the grid falls, the smoothed battery passes
+    through idle while the smoothed grid still imports: the readings in force show no
+    hold, so none is told."""
+    engine = Engine(_config())
+    for second in seconds:
+        at = WINDOW_END + timedelta(seconds=second)
+        meters = {
+            "pv": _steps(0.0, 0.0, WINDOW_END, at),
+            "grid": _steps(*grid, WINDOW_END, at),
+            "battery": _steps(*battery, WINDOW_END, at),
+        }
+        valuation = engine.value(_inputs(meters, soc=soc, at=at), at=at)
+        assert Cause.BATTERY_RESERVE not in valuation.degraded, second
+
+
+def test_a_hybrid_at_its_rating_cannot_serve_so_is_not_held() -> None:
+    """DC PV fills the hybrid's 6 kW AC rating: the battery behind it cannot reach the
+    house, so its standing idle while the grid imports is no hold."""
+    plant = Plant(example_plant("dc_coupled_hybrid", BERLIN))
+    config = EngineConfig(plant=plant, pricing=Pricing(scenarios=3), horizon=6 * HOUR)
+    noon = datetime(2026, 6, 16, 11, 3, 7, tzinfo=UTC)
+    for pv_kw in (6.0, 6.3, 6.6):
+        meters = _meters(battery_kw=0.0, grid_kw=3.0, pv_kw=pv_kw, at=noon)
+        valuation = Engine(config).value(_inputs(meters, soc=0.9, at=noon), at=noon)
+        assert Cause.BATTERY_RESERVE not in valuation.degraded, pv_kw
+
+
+def test_a_hold_rules_session_the_forecast_does_not_hold_is_the_models() -> None:
+    """A client without a DC-bus load forecast values on 0 kW, so no session opens in
+    the run; the EV drawing 7 kW at 60 % (the rule holds below 65 %) is the plant's own
+    hold rule, judged at the measured draw: no floor is raised."""
+    plant = Plant(replace(EV_PLANT.config, dispatch=Dispatch(hold_rules=(HOLD,))))
+    readings = {"grid": 8.0, "battery": 0.0, "pv": 0.0, "dc_load": 7.0}
+    meters = {
+        name: ts.Series.of([(EV_NOW - 30 * MIN, readings[kind])], known_until=EV_NOW)
+        for name, kind in plant.meters.items()
+    }
+    valuation = _engine(plant).value(
+        ev_inputs(soc=reading(0.6, as_of=EV_NOW), dc_load=_evening_ev(0.0), meters=meters),
+        at=EV_NOW,
+    )
+    assert Cause.BATTERY_RESERVE not in valuation.degraded
+
+
+def _live_inputs(at: datetime, battery_kw: float, grid_kw: float) -> Inputs:
+    readings = {"pv": 0.2, "grid": grid_kw, "battery": battery_kw}
+    return Inputs(
+        prices=None,
+        soc=ts.Series.of([(NOW - 30 * MIN, HELD_SOC)], known_until=at),
+        dispatch_as_modelled=ts.Series.of([(NOW - 3 * HOUR, True)], known_until=at),
+        meters={
+            n: ts.Series.of([(NOW - 30 * MIN, kw)], known_until=at) for n, kw in readings.items()
+        },
+        measured_load=ts.Series.of([(NOW - 30 * MIN, 0.8)], known_until=at),
+    )
+
+
+def test_the_warm_live_value_follows_the_hold() -> None:
+    """Still held: the house imports, and the live value prices the import. Released
+    (the battery serving the house): the live value runs on the configured plant, not
+    the valuation's floor, so the battery is the house's again (on the floor, it would
+    read the battery as empty and price the import)."""
+    engine = Engine(_config())
+    valuation = engine.value(_inputs(_meters(battery_kw=0.0, grid_kw=0.6)), at=NOW)
+    assert Cause.BATTERY_RESERVE in valuation.degraded
+    at, until = NOW + MIN, NOW + 30 * MIN
+    held = engine.live(_live_inputs(at, 0.0, 0.6), at=at, valuation=valuation, valid_until=until)
+    assert held.regime == "import"
+    assert held.marginal_cost == pytest.approx(0.30)
+    released = engine.live(
+        _live_inputs(at, -0.6, 0.0), at=at, valuation=valuation, valid_until=until
+    )
+    assert Cause.BATTERY_RESERVE not in released.degraded
+    assert released.regime == "battery"
+    assert released.marginal_cost is not None and released.marginal_cost < 0.30

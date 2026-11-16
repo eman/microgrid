@@ -388,6 +388,11 @@ battery = "sensor.battery"
     assert read.sources["battery_lots"].startswith("the ledger over 2 days")
     lots = read.inputs.lots
     assert lots is not None and lots.samples and lots.samples[-1].value is not None
+    # The meters over the smoothing window, kW: a valuation reads whether the plant
+    # holds its battery.
+    meters = read.inputs.meters
+    assert meters.keys() == set(setup.plant.meters)
+    assert all(series.samples[-1].value == 2.0 for series in meters.values())
 
 
 def test_fetch_writes_the_measured_history(tmp_path: Path) -> None:

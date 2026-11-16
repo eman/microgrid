@@ -24,7 +24,9 @@ Each user-visible change, under the release it ships in.
   ([Write a plant model](docs/how-to/own-plant-model.md)), and
   `assert_plant_model_contract` checks it. `Inputs.meters` is read by valuations, not
   only by the live value: the Home Assistant integration and the `microgrid` command's
-  `value` and `replay` pass them. `valuation/2` gains the cause `battery_reserve`.
+  `value`, `replay` (the meters vouched by the heartbeat) and `now` (the meters' recent
+  history) pass them. Once the meters no longer show the hold, the live value runs on
+  the configured plant, not the valuation's floor. `valuation/2` gains the cause `battery_reserve`.
 
 ## [0.1.5] - 2026-11-15
 
