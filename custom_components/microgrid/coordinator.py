@@ -419,6 +419,8 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         lots, _ = self._lots_series(now)
         dc = no_dc_forecast(now, engine.horizon, engine.slot) if plant.has_dc_loads else None
         return Inputs(
+            # The meters now: a valuation reads whether the plant holds its battery.
+            meters=self._meters(now) if has_battery else {},
             prices=self._series(CONF_PRICES, now),
             pv=self._series(CONF_PV_FORECAST, now) if plant.has_pv else None,
             load=self._series(CONF_LOAD_FORECAST, now),
@@ -475,6 +477,19 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
 
     # -- the live value ------------------------------------------------------------------
 
+    def _meters(self, now: datetime) -> dict[str, Series[float]]:
+        """The meters' buffered readings up to ``now``, vouched for as far as the
+        telemetry path is."""
+        telemetry = self.telemetry
+        if telemetry is None:
+            return {}
+        until = self.vouched_until(now)
+        return {
+            name: found
+            for name, buffer in telemetry.meters.items()
+            if (found := buffer.series(now, until)) is not None
+        }
+
     def _live_inputs(self, now: datetime) -> Inputs:
         plant = self.setup.plant
         telemetry = self.telemetry
@@ -484,11 +499,7 @@ class MicrogridCoordinator(DataUpdateCoordinator[Snapshot]):
         telemetry.prune(now, self.setup.engine.smoothing_window)
         has_battery = plant.storage is not None
         until = self.vouched_until(now)
-        meters = {
-            name: found
-            for name, buffer in telemetry.meters.items()
-            if (found := buffer.series(now, until)) is not None
-        }
+        meters = self._meters(now)
         return Inputs(
             prices=None,
             soc=(

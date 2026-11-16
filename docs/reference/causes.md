@@ -37,6 +37,7 @@ are the input names.
 | `plant_model` | the plant model could not project every slot |
 | `battery_lots` | no [lots](../concepts/inputs.md#the-batterys-lots) in force at the moment, for a plant with a battery on the stored-cost rule (`battery_value = "stored_cost"`). **Not a fallback**: the valuation stays `stored_value_v1`, with all the battery holds priced as bought at the import |
 | `pv_spread` | the PV forecast gives no quantile below its median (a point forecast, say): the pessimistic case (`marginal_cost_p10`, `surplus_kw_p10`) is the median, as nothing is known of the downside. **Not a fallback**: the valuation stays `stored_value_v1` and its values stand |
+| `battery_reserve` | the [meters](../concepts/inputs.md#meters), both averaged and as they read now, show the plant holding its battery: the battery idle, above its configured reserve and able to serve the house, while the house imports beyond the plant's regulation. The plant model does not hold it there itself: not in its first slot, nor, for DC-bus loads, in that slot at their measured draw (a hold rule's session), nor, within 30 s of the slot's start, in the slot before (a meter not yet reporting a release): the plant keeps a floor its configuration does not have, such as a discharge cut-off raised on the plant itself. The run takes the measured SOC as the battery's floor, so the battery offers only what it will hold above it. **Not a fallback**: the valuation stays `stored_value_v1` and its values stand |
 
 A plant without PV has no `pv_forecast` input, and one without a battery no
 `battery_soc` or `work_mode`: an input the plant does not have is never a cause.
@@ -54,7 +55,8 @@ it) is not a cause: the slots before the gap are valued and `horizon_cut` is tru
 | `issue` | the valuation is past its `valid_until`; its prices still serve |
 
 A live value also names `battery_soc` and `work_mode` from the measured series,
-`battery_lots` where it has no lots, `pv_spread` where its valuation named it, and,
+`battery_lots` where it has no lots, `pv_spread` and `battery_reserve` where its
+valuation named them, and,
 where the valuation it runs again fell back, that valuation's causes.
 
 ## The client's own causes, and mistakes

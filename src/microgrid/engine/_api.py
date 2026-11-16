@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from bisect import bisect_right
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from datetime import datetime, timedelta
 from types import MappingProxyType
 from typing import Final
@@ -49,7 +49,15 @@ from microgrid._checks import require_utc
 from microgrid.engine import _engine_config
 from microgrid.engine._assess import Assessment, Cause, InputState, ValuationKind, assess
 from microgrid.engine._inputs import Inputs, issued, reading_at
-from microgrid.engine._live import importing_now, revalue, smoothed, window
+from microgrid.engine._live import (
+    JUMP_CONFIRM,
+    Smoothed,
+    _median,
+    importing_now,
+    revalue,
+    smoothed,
+    window,
+)
 from microgrid.engine._stored import Lots, project_average
 from microgrid.engine._supply import Step, supply_stack
 from microgrid.engine._surplus import PvMaybe, forecast_surplus
@@ -94,7 +102,9 @@ from microgrid.plant.port import PlantModel
 #: and the ledger's floor's names), as money is in the prices' own.
 #: ``engine-api/5``: ``analysis.ground_truth.net_inverter_kw`` takes no house load (a
 #: hybrid's meter is the AC its crossing gives, ``SlotDispatch.crossing_ac``).
-ENGINE_CONTRACT: Final = "engine-api/5"
+#: ``engine-api/6``: the port's ``PlantModel`` keeps ``with_reserve`` (a plant model of a
+#: client's own adds it), and a valuation reads ``Inputs.meters``.
+ENGINE_CONTRACT: Final = "engine-api/6"
 
 #: The outputs' schema: what :meth:`Valuation.to_mapping` and
 #: :meth:`LiveValue.to_mapping` give, shipped as ``schemas/valuation-2.schema.json``.
@@ -103,8 +113,10 @@ VALUATION_SCHEMA: Final = "valuation/2"
 
 #: The engine's model: the price rule and the plant model it runs, as
 #: every :class:`Valuation` names them. A client that publishes its own version keeps
-#: it beside this one.
-MODEL_VERSION: Final = "pricing/1.3"
+#: it beside this one. ``pricing/1.4``: where the meters show the plant holding its
+#: battery above its configured reserve, the run takes the measured SOC as its floor
+#: (``battery_reserve``).
+MODEL_VERSION: Final = "pricing/1.4"
 
 #: The default age past which a price forecast cannot be used (``EngineConfig.
 #: price_max_age``: without a limit, a price issue however old would be reused, against
@@ -876,17 +888,39 @@ def _run_model(config: EngineConfig, r: _Resolved) -> _Run | None:
     )
 
 
-def _value_resolved(config: EngineConfig, r: _Resolved) -> Valuation:
-    """Assess the inputs, run the model where they allow it, and assemble the valuation."""
+def _value_resolved(
+    config: EngineConfig, r: _Resolved, *, held: Mapping[str, float | None] | None = None
+) -> Valuation:
+    """Assess the inputs, run the model where they allow it, and assemble the valuation.
+
+    ``held``: the meters' reading where they show the plant holding its battery now
+    (:func:`_held_now`).
+    Where the run's own first slot does not hold it, the plant keeps a floor its
+    configuration does not have (a discharge cut-off raised on the plant itself): the
+    run is made again with the measured SOC as its reserve, so the battery offers only
+    what it will hold above it, and ``battery_reserve`` is named (R-7)."""
     plant = config.plant
     states = dict(r.states)
     run: _Run | None = None
+    floor_raised = False
     if (
         assess(states).valuation is ValuationKind.STORED_VALUE_V1
         and (r.stepped or r.by_array)
         and (r.soc is not None or plant.storage is None)
     ):
         run = _run_model(config, r)
+        storage = plant.storage
+        if (
+            held is not None
+            and run is not None
+            and run.model is not None
+            and storage is not None
+            and r.soc is not None
+            and storage.reserve_soc < r.soc < storage.saturation_soc
+            and not _held_by_model(config, r, run.model, held)
+        ):
+            run = _run_model(replace(config, plant=plant.with_reserve(r.soc)), r)
+            floor_raised = run is not None
         model_ran = run is not None
     else:
         model_ran = True
@@ -898,6 +932,8 @@ def _value_resolved(config: EngineConfig, r: _Resolved) -> Valuation:
         degraded = (*degraded, Cause.BATTERY_LOTS)
     if run is not None and _no_spread(config, r):
         degraded = (*degraded, Cause.PV_SPREAD)
+    if floor_raised:
+        degraded = (*degraded, Cause.BATTERY_RESERVE)
     return Valuation(
         model_version=MODEL_VERSION,
         now=r.now,
@@ -949,7 +985,9 @@ class Engine:
         resolved = _resolve_inputs(self.config, inputs, at)
         if isinstance(resolved, _Unpriced):
             return _unpriced(resolved)
-        return _value_resolved(self.config, resolved)
+        return _value_resolved(
+            self.config, resolved, held=_held_now(self.config, inputs, resolved.now, resolved.soc)
+        )
 
     def live(
         self,
@@ -1056,7 +1094,7 @@ def _keep[T](kept: list[Sample[T]], sample: Sample[T], begin: datetime) -> None:
 
 #: The causes a value is named with and still stands on (values toward the import,
 #: R-7).
-_STANDING: Final = frozenset({Cause.BATTERY_LOTS, Cause.PV_SPREAD})
+_STANDING: Final = frozenset({Cause.BATTERY_LOTS, Cause.PV_SPREAD, Cause.BATTERY_RESERVE})
 
 
 def _live_value(
@@ -1084,14 +1122,7 @@ def _live_value(
     soc = _soc(reading_at(inputs.soc, now).value, config.soc_tolerance)
     dispatch = reading_at(inputs.dispatch_as_modelled, now).value
     tau = config.smoothing
-    read = {name: smoothed(inputs.meters.get(name), now, tau) for name in plant.meters}
-    # A PV or DC-bus load meter is averaged through the warm-up (``warm`` says whether it
-    # has settled), as the house load is; the others are None until a time constant has
-    # passed since a gap.
-    meters = {
-        name: run.value if plant.meters[name] in ("pv", "dc_load") or run.warm else None
-        for name, run in read.items()
-    }
+    read, meters = _meters_at(config, inputs, now)
     pv_names = [name for name, measures in plant.meters.items() if measures == "pv"]
     pv: float | Mapping[str, float] | None = 0.0
     if has_pv:
@@ -1214,6 +1245,11 @@ def _live_value(
             degraded=tuple(dict.fromkeys(causes)),
             external=external,
         )
+    # The valuation took a floor the meters showed (``battery_reserve``): kept while they
+    # still show the plant holding the battery, the configured plant's once they do not.
+    floor_held = Cause.BATTERY_RESERVE in valuation.degraded
+    if floor_held and _held_now(config, inputs, now, soc) is None:
+        model, floor_held = replace(model, plant=config.plant), False
     revalued = revalue(
         model,
         index,
@@ -1229,6 +1265,7 @@ def _live_value(
     lots_now = (_lots_at(inputs, now) if has_battery else None) or model.lots
     named: tuple[Cause, ...] = (Cause.BATTERY_LOTS,) if _lots_missing(config, lots_now) else ()
     named += tuple(c for c in valuation.degraded if c is Cause.PV_SPREAD)
+    named += (Cause.BATTERY_RESERVE,) if floor_held else ()
     energy, found = revalued.energy, revalued.surplus
     if found.kw > 0 and found.value is not None:
         kw, regime = found.kw, found.regime  # PV is spilling now
@@ -1263,6 +1300,114 @@ def _live_value(
         pv_value=energy.pv_value[0],
         battery_value=energy.battery_value[0],
     )
+
+
+def _meters_at(
+    config: EngineConfig, inputs: Inputs, now: datetime, tau: timedelta | None = None
+) -> tuple[dict[str, Smoothed], dict[str, float | None]]:
+    """Each of the plant's meters averaged at ``now`` (``_live.smoothed``, over ``tau``:
+    ``EngineConfig.smoothing`` by default, 0 for the readings in force), and the
+    reading the plant model takes from them. A PV or DC-bus load meter is averaged
+    through the warm-up (``warm`` says whether it has settled), as the house load is;
+    the others are None until a time constant has passed since a gap."""
+    plant = config.plant
+    tau = config.smoothing if tau is None else tau
+    read = {name: smoothed(inputs.meters.get(name), now, tau) for name in plant.meters}
+    meters = {
+        name: run.value if plant.meters[name] in ("pv", "dc_load") or run.warm else None
+        for name, run in read.items()
+    }
+    return read, meters
+
+
+def _held_now(
+    config: EngineConfig, inputs: Inputs, now: datetime, soc: float | None
+) -> dict[str, float | None] | None:
+    """The meters' reading at ``now`` (smoothed) where they show the plant holding its
+    battery, else None. Held: the battery idle, neither giving nor taking more than
+    the meters' floors (``EngineConfig.observed``: ``need_kw``, ``charge_kw``), above its
+    reserve and able to serve the house (``Storage.can_serve``), while the house imports
+    beyond the plant's regulation (``regulation_kw``); able to serve is room to give more
+    than that regulation, however much more the house draws (less room is regulation's
+    to tell from a hold). Both the averages and the readings
+    in force must show it: an average lags a change (a battery starting to discharge as
+    the grid falls passes through idle while the grid still reads high). A battery at
+    its discharge limit, behind an inverter at its rating, or charging, is not held.
+    Unknown meters, or none given, say not."""
+    storage = config.plant.storage
+    if storage is None or soc is None or not inputs.meters:
+        return None
+    noise = config.observed
+    if soc <= storage.reserve_soc + noise.soc:
+        return None
+    _, averaged = _meters_at(config, inputs, now)
+    _, in_force = _meters_at(config, inputs, now, timedelta(0))
+    for meters in (averaged, in_force):
+        flow = config.plant.metered_flow(now, soc, meters)
+        if flow is None:
+            return None
+        taking = flow.pv_to_battery + flow.grid_to_battery + flow.dc_pv_to_battery
+        if not (
+            flow.battery_out <= noise.need_kw
+            and taking <= noise.charge_kw
+            and flow.grid_to_load > max(noise.short_kw, noise.regulation_kw)
+            and storage.can_serve(flow, max(noise.need_kw, noise.regulation_kw))
+        ):
+            return None
+    return averaged
+
+
+def _held_by_model(
+    config: EngineConfig, r: _Resolved, model: Model, meters: Mapping[str, float | None]
+) -> bool:
+    """Whether the plant model holds the battery now, as its dispatch does (a hold
+    rule's session, a top-up, its grid-charge window): the run's first slot, its median
+    case's as the surplus's. For a plant with DC-bus loads, that slot again at their
+    measured draw, as a session the load forecast does not hold (a client without one
+    values on 0 kW) opens a hold rule's session all the same. And within
+    :data:`~microgrid.engine._live.JUMP_CONFIRM` of the slot's start, the slot before
+    it too: a meter that has not yet reported a change still reads as the plant held
+    the battery a moment ago (the grid-charge window just ended). Where the meters
+    cannot say what the plant does now, it holds: nothing is raised."""
+    dispatch = model.flows[_median(model)][0].dispatch
+    if dispatch.held or dispatch.topup_gap is not None:
+        return True
+    plant = config.plant
+    moments: list[tuple[datetime, timedelta]] = []
+    if plant.has_dc_loads:
+        moments.append((r.now, r.starts[0] + config.slot - r.now))
+    if r.now - r.starts[0] < JUMP_CONFIRM:
+        moments.append((r.starts[0] - config.slot, config.slot))
+    if not moments:
+        return False
+    dc_kw: float | None = None
+    if plant.has_dc_loads:
+        names = [name for name, measures in plant.meters.items() if measures == "dc_load"]
+        dc_kw = meters.get(names[0]) if names else None
+        if dc_kw is None:
+            return True
+    load_kw = r.load_kw[0]
+    pv: PvKw | None = None
+    if r.by_array is not None:
+        first = {name: q[0] for name, q in r.by_array.items()}
+        if all(q is not None for q in first.values()):
+            pv = {name: [q.median] for name, q in first.items() if q is not None}
+    elif r.stepped is not None and r.stepped[0] is not None:
+        pv = [r.stepped[0].median]
+    if load_kw is None or pv is None:
+        return True
+    for start, duration in moments:
+        (flow,) = plant.project(
+            [start],
+            [duration],
+            pv,
+            [load_kw],
+            r.soc,
+            dc_load_kw=None if dc_kw is None else [dc_kw],
+        )
+        if flow.dispatch.held or flow.dispatch.topup_gap is not None:
+            return True
+    return False
 
 
 def _throughout[T](

@@ -64,8 +64,9 @@ class Inputs:
     dispatch_as_modelled: Series[bool] | None = None
     #: The plant's meters, kW by name (``PlantModel.meters``), each in its configured
     #: sign, as measured: what the live value smooths (:meth:`Engine.live`). A meter
-    #: missing is unknown; a name the plant does not meter raises. A valuation does not
-    #: read them.
+    #: missing is unknown; a name the plant does not meter raises. A valuation reads them
+    #: at its moment, as the live value does, for whether the plant holds its battery
+    #: (``battery_reserve``).
     meters: Mapping[str, Series[float]] = field(default_factory=dict)
     #: The house load as the plant meters it, kW, as measured: the live value's.
     measured_load: Series[float] | None = None

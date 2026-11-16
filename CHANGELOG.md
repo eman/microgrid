@@ -4,6 +4,30 @@ Each user-visible change, under the release it ships in.
 
 ## [Unreleased]
 
+### Fixed
+
+- A valuation no longer offers the battery's energy when the plant holds the battery
+  above its configured reserve, as when a discharge cut-off is raised on the plant
+  itself. The valuation reads the meters at its moment, as the live value does. Where
+  they show the house importing though the battery could serve it, and the plant
+  model's own first slot does not hold the battery, the run takes the measured SOC as
+  the battery's floor: the battery's step and regime are left only where the
+  projection fills it above that floor, and `degraded` names the new cause
+  `battery_reserve` (the valuation stays `stored_value_v1`). Before, a battery idle at
+  the plant's floor was offered at its full power in every slot, at the price of what
+  it held (eman/microgrid#31). The model is `pricing/1.4`.
+
+### Changed
+
+- `engine-api/6`: the plant-model port (`PlantModel`) has `with_reserve(soc)`, the same
+  plant keeping a higher floor; a plant model of a client's own adds it
+  ([Write a plant model](docs/how-to/own-plant-model.md)), and
+  `assert_plant_model_contract` checks it. `Inputs.meters` is read by valuations, not
+  only by the live value: the Home Assistant integration and the `microgrid` command's
+  `value`, `replay` (the meters vouched by the heartbeat) and `now` (the meters' recent
+  history) pass them. Once the meters no longer show the hold, the live value runs on
+  the configured plant, not the valuation's floor. `valuation/2` gains the cause `battery_reserve`.
+
 ## [0.1.5] - 2026-11-15
 
 ### Fixed

@@ -286,9 +286,9 @@ def test_live_revalues_on_a_fixed_schedule(monkeypatch: pytest.MonkeyPatch) -> N
     valued: list[datetime] = []
     real = offline.engine_inputs
 
-    def spy(setup: Any, read: Any, at: datetime, lots: Any = None) -> Any:
+    def spy(setup: Any, read: Any, at: datetime, lots: Any = None, meters: Any = None) -> Any:
         valued.append(at)
-        return real(setup, read, at, lots)
+        return real(setup, read, at, lots, meters)
 
     monkeypatch.setattr(offline, "engine_inputs", spy)
     start = datetime(2026, 10, 22, 11, 0, tzinfo=UTC)

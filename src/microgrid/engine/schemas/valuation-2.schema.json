@@ -17,7 +17,8 @@
         "smoothing",
         "issue",
         "battery_lots",
-        "pv_spread"
+        "pv_spread",
+        "battery_reserve"
       ]
     },
     "Kind": {

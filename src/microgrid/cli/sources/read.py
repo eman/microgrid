@@ -66,7 +66,7 @@ from microgrid.cli.sources.rows import on_slots
 from microgrid.engine import Engine, EngineConfig, Inputs
 from microgrid.engine.ledger import Lots
 from microgrid.engine.series import Forecast, Sample, Series
-from microgrid.engine.units import UnitError, convert
+from microgrid.engine.units import UnitError, convert, normalise
 from microgrid.plant import Plant
 
 __all__ = [
@@ -200,6 +200,50 @@ async def _measured(
             problems["dispatch"] = f"{measured.dispatch}: {err}"
 
 
+async def _meters(
+    client: HaClient,
+    measured: Measured,
+    plant: Plant,
+    engine: EngineConfig,
+    now: datetime,
+    problems: dict[str, str],
+) -> dict[str, Series[float]]:
+    """The plant's meters over the smoothing window before ``now``, kW, as a valuation
+    reads them for whether the plant holds its battery; none where ``[measured.meters]``
+    does not name every meter. A meter that cannot be read is a problem, and then none
+    is given (a valuation tells nothing from part of them)."""
+    if not plant.meters or set(plant.meters) - set(measured.meters):
+        return {}
+    start = now - engine.smoothing_window
+    entities = [measured.meters[name] for name in plant.meters]
+    try:
+        history = await client.history(entities, start, now)
+        found: dict[str, Series[float]] = {}
+        for name in plant.meters:
+            entity_id = measured.meters[name]
+            state = await client.get_state(entity_id)
+            unit = state.get("attributes", {}).get("unit_of_measurement")
+            rows = history.get(entity_id, [])
+            samples = tuple(
+                sorted(
+                    (Sample(max(at, start), _number(v)) for at, v in rows),
+                    key=lambda sample: sample.at,
+                )
+            )
+            found[name] = normalise(Series(samples, now, unit or None), "power")
+    except (SourceError, KeyError, ValueError, UnitError) as err:
+        problems["meters"] = f"{err} (whether the plant holds its battery is not told)"
+        return {}
+    return found
+
+
+def _number(text: str) -> float | None:
+    try:
+        return float(text)
+    except ValueError:
+        return None  # unavailable, unknown: no value from here
+
+
 async def _lots(
     client: HaClient | None,
     sources: Sources,
@@ -244,6 +288,7 @@ async def read_now(
     measured: dict[str, Any] = {}
     forecasts: dict[str, Forecast[Any]] = {}
     lots: Series[Lots] | None = None
+    meters: dict[str, Series[float]] = {}
     owned = client is None and sources.home_assistant is not None
     if owned and sources.home_assistant is not None:
         client = HaClient.connect(sources.home_assistant)
@@ -278,6 +323,7 @@ async def read_now(
                 problems["soc"] = "no source configured"
             else:
                 await _measured(client, sources.measured, now, measured, problems)
+                meters = await _meters(client, sources.measured, plant, engine, now, problems)
                 used.update({k: "home_assistant" for k in ("soc", "dispatch") if k in measured})
             lots, why = await _lots(client, sources, plant, engine, now, lots_run_in, limits)
             if lots is not None:
@@ -298,6 +344,7 @@ async def read_now(
         dc_load=_issue(dc, now) if dc is not None else None,
         soc=measured.get("soc") if plant.storage is not None else None,
         dispatch_as_modelled=measured.get("dispatch") if plant.storage is not None else None,
+        meters=meters,
         lots=lots,
     )
     entries: dict[str, Entry] = {}

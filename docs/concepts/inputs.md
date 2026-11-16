@@ -111,8 +111,9 @@ values are already the conservative ones, so they stand
 The plant's own power readings, in kW, each named and signed as `plant/2` declares
 ([meters](../reference/plant.md#meters)): by default `pv`, `grid` (positive importing),
 `battery` (positive charging, at its DC side) and, with a DC-bus load, `dc_load`. The live
-value reads them for PV now and to tell whether the house is importing; the scoring
-commands read what the plant did.
+value reads them for PV now and to tell whether the house is importing; a valuation reads
+them at its moment for whether the plant holds its battery above its configured reserve
+(`battery_reserve`); the scoring commands read what the plant did.
 
 ## House load
 

@@ -275,3 +275,30 @@ async def test_the_lots_wait_for_their_price_sensors_without_spending_the_slot(
     coordinator = found.runtime_data
     assert "not available yet" in (coordinator._lots_problem or "")
     assert coordinator._lots_tried is None
+
+
+async def test_a_battery_the_plant_holds_is_not_offered(
+    hass: HomeAssistant, frozen: FrozenDateTimeFactory
+) -> None:
+    """The meters show the battery idle at 30 % (its reserve 10 %) while the house
+    imports: once they have settled, a valuation takes 30 % as the battery's floor and
+    names ``battery_reserve`` (eman/microgrid#31)."""
+    await hass.config.async_update(time_zone="Europe/Berlin")
+    set_sources(hass, soc="30")
+    for entity, state in (
+        ("sensor.pv_power", "200"),
+        ("sensor.grid_power", "600"),
+        ("sensor.battery_power", "0"),
+    ):
+        hass.states.async_set(entity, state, {"unit_of_measurement": "W"})
+    found = entry()
+    await setup(hass, found)
+    coordinator = found.runtime_data
+    # The meters have not settled yet: nothing is told.
+    assert "battery_reserve" not in coordinator.last_valuation.degraded
+
+    frozen.tick(timedelta(minutes=6))
+    await coordinator.async_refresh()
+    valuation = coordinator.last_valuation
+    assert valuation.kind == "stored_value_v1"
+    assert "battery_reserve" in valuation.degraded

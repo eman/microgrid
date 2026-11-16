@@ -49,6 +49,11 @@ class Cause(StrEnum):
     #: pessimistic case (``marginal_cost_p10``, ``surplus_kw_p10``; R-6) is the
     #: median, as nothing is known of the downside. Named; the values stand.
     PV_SPREAD = "pv_spread"
+    #: The meters show the plant holding its battery above its configured reserve, as
+    #: the plant model does not (a discharge floor raised on the plant itself): the
+    #: valuation takes the measured SOC as the battery's floor, so it offers only what
+    #: the battery will hold above it. Named; the values stand.
+    BATTERY_RESERVE = "battery_reserve"
 
 
 @dataclass(frozen=True, slots=True)

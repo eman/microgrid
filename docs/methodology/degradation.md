@@ -29,6 +29,13 @@ opportunity, not a bill.
   origin](stored-value.md#energy-of-unknown-origin)).
 - **No spread below the PV forecast's median** (a point forecast): not a fallback. The
   pessimistic case is the median, and `degraded` names `pv_spread`; the values stand.
+- **The plant holding its battery above its configured reserve**: not a fallback. Where
+  the meters, averaged and as they read now, show the battery idle above its reserve and
+  able to serve the house while the house imports, and the plant model does not hold it
+  there itself, the plant keeps a floor its configuration
+  does not have. The run takes the measured SOC as the battery's floor, so a kWh the
+  battery cannot give is never offered, and `degraded` names `battery_reserve`. Without
+  the meters, or before they have settled, nothing is told.
 - **No price for the slot under way** (none received, too old, or on intervals that
   cross the slots): the valuation is `unpriced`, with no slots. Without a price there is
   nothing to fall back to.

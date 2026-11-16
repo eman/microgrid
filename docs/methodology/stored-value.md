@@ -217,13 +217,19 @@ price holds for in the slot, in the order the plant serves a load:
    curtailed);
 2. **`pv`**: PV charging the battery, diverted, at the bottom of the dead band;
 3. **`battery`**: discharge up to its limit and the energy above its reserve, at the
-   top of the dead band;
+   top of the dead band. Where the meters show the plant holding its battery above its
+   configured reserve, the reserve is the SOC measured then (`battery_reserve`), so a
+   battery the plant will not discharge offers nothing;
 4. **`grid`**: without limit (`kw` null), at the import price.
 
 The order is the plant's, not sorted by price: the battery's step can cost more than the
 grid's, when it holds energy bought dearer than the import now. Where the grid already
 serves the slot (the house importing, or the battery held or empty with no PV charging
 it), the grid is the only step.
+
+**Each slot's stack is that slot's alone.** The battery's step is what it could give in
+the slot from what the projection has it hold there; a load that runs through several
+slots draws it down for the later ones, which their stacks do not know.
 
 **The stack is the [median PV case](../concepts/outputs.md#the-median-pv-case)'s;
 `marginal_cost` is the average over all the scenarios.** So the first step's price and

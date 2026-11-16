@@ -297,6 +297,9 @@ class Plant:
     def import_limit_kw(self) -> float | None:
         return self.base.import_limit_kw
 
+    def with_reserve(self, soc: float) -> PlantModel:
+        return replace(self, base=self.base.with_reserve(soc), battery=None)
+
     @property
     def has_dc_loads(self) -> bool:
         return self.base.has_dc_loads
